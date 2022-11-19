@@ -1,0 +1,290 @@
+---
+title: "**Pelagics**"
+subtitle: "Operating Model Conditioning"
+author: "L Kell"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+mathjax: TRUE
+fig_width: 6 
+fig_height: 4 
+tags: FLR FLCore introduction
+license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+bibliography: /home/laurie/Desktop/refs.bib
+---
+
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+
+opts_chunk$set(cache     =TRUE, 
+               comment   =NA, 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,cache   =TRUE,
+               cache.path="../cache/cond/",
+               fig.path  ="../tex/figs/cond/",
+               fig.width =8,
+               fig.height=6,
+               dev       ="png")
+
+iFig=0
+iTab=0
+```
+
+```{r, pkgs}
+#install_github("flr/FLfse/FLfse")
+#install_github('fishfollower/SAM/stockassessment', ref='components')
+
+library(FLCore)
+library(ggplotFL)
+library(FLfse)
+library(FLBRP)
+library(FLasher)
+library(FLSAM)
+library(kobe)
+
+library(TMB)
+library(stockassessment)
+  
+library(plyr)
+library(reshape)
+library(magrittr)
+  
+library(grid)
+
+library(compositions)
+
+theme_set(theme_bw(16))
+```
+
+```{r, source}
+source('../R/kobe-phaseMar.R')
+source('../R/kobe-phase.R')
+```
+
+
+```{r, ices}
+load("../data/inputs/ices.RData")
+bmk=laply(ices, function(x) attributes(x)$benchmark)
+```
+
+```{r, assessment-whb}
+load("../data/inputs/WHB/run/model.RData")
+whb=SAM2FLStock(fit)
+whbR=FLBRP(whb,nyears=20)
+params(whbR)[]=median(rec(whb))
+
+save(whb,whbR,file="../data/om/whb.RData")
+```
+
+```{r, assessment-her}
+load("../data/inputs/HER/NSAS_HAWG2022_sf.RData")
+her=NSH
+herR=FLBRP(her,nyears=20)
+params(herR)[]=median(rec(her))
+
+save(her,herR,file="../data/om/her.RData")
+```
+
+```{r, assessment-mac}
+load("../data/inputs/MAC/model fit.RData")
+mac =SAM2FLStock(fit.new)
+mac=window(mac,end=2021)
+macR=FLBRP(mac,nyears=20)
+params(macR)[]=median(rec(mac))
+
+save(mac,macR,file="../data/om/mac.RData")
+```
+
+
+```{r, retro-whb}
+load("../data/inputs/WHB/run/retro.RData")
+whbRet=FLStocks(llply(RETRO, SAM2FLStock)) 
+
+save(whbRet,file="../data/om/whbRet.RData")
+```
+
+```{r, retro-her}
+load("../data/inputs/HER/NSAS_HAWG2022_sf_retro.RData")
+load("../data/om/her.RData")
+
+herRet=FLStocks(llply(NSH.retro, function(x) {
+  res         =window(her,end=dims(x)$maxyear)
+  stock.n(res)=stock.n(x)
+  harvest(res)=harvest(x)
+  res}))
+
+save(herRet,file="../data/om/herRet.RData")
+```
+
+```{r, retro-mac}
+load("../data/inputs/MAC/retro.RData")
+macRet=FLStocks(llply(ret,SAM2FLStock))
+
+save(macRet,file="../data/om/macRet.RData")
+```
+
+
+```{r, msy}
+load("../data/inputs/ices.RData")
+
+#f you call fwd(FLStock) you can set sr=rec(FLStock) and it will set internally rec~a and the params by year as SRR
+
+whbs=FLStocks("ICES"=whb,"Fmsy"=fwd(whb,sr=rec(whb),
+        control=as(FLQuants("f"=fbar(whb)[,ac(dims(whb)$maxyear-(19:0))]%=%attributes(ices[["whb.27.1-91214"]])$benchmark$Fmsy),
+                            "fwdControl")))
+hers=FLStocks("ICES"=her,"Fmsy"=fwd(her,sr=rec(her),
+        control=as(FLQuants("f"=fbar(her)[,ac(dims(her)$maxyear-(19:0))]%=%attributes(ices[["her.27.3a47d"]])$benchmark$Fmsy),
+                            "fwdControl")))
+macs=FLStocks("ICES"=mac,"Fmsy"=fwd(mac,sr=rec(mac),
+        control=as(FLQuants("f"=fbar(mac)[,ac(dims(mac)$maxyear-(19:0))]%=%attributes(ices[["mac.27.nea"]])$benchmark$Fmsy),
+                   "fwdControl")))
+```
+
+
+## ICES Assessments with an $F_{MSY}$ projection
+
+```{r}
+p<-function(ices,ref,yr=1980){
+  
+  p1=plot(ices,metrics=list(Rec   =rec, 
+                            SSB   =ssb,
+                            Catch =catch,
+                            F     =fbar))+
+    #facet_grid(qname~stock,scale="free")+
+    theme_bw()+xlab("Year")+theme(legend.position="bottom")+
+    scale_colour_manual("",values=c("blue","red"))
+  
+    p1+
+    geom_flpar(data=FLPars(SSB   =FLPar("Bpa"=ref["Bpa"]),
+                           F     =FLPar("Fmsy"=ref["Fmsy"])),x=dims(ices[[1]])$minyear)
+
+ }
+
+p(whbs,attributes(ices[["whb.27.1-91214"]])$benchmark)
+```
+
+**Figure `r iFig=iFig+1; iFig`** Blue whiting: assessment and $F_{MSY}$ projection compared. 
+
+
+```{r}
+p(hers,attributes(ices[["her.27.3a47d"]])$benchmark)
+```
+
+**Figure `r iFig=iFig+1; iFig`** Herring: assessment and $F_{MSY}$ projection compared. 
+
+```{r}
+p(macs,attributes(ices[["mac.27.nea"]])$benchmark)
+```
+
+**Figure `r iFig=iFig+1; iFig`** Mackerel: assessment and $F_{MSY}$ projection compared. 
+
+
+
+```{r, whbErr}
+load("../data/om/whbRet.RData")
+
+om1=whbRet[[1]]
+whbErr=laply(whbRet, function(x){
+  yr=ac(dims(fbar(x))$maxyear)
+  
+  c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
+    ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
+
+save(whbErr, file="../data/om/whbErr.RData")
+```
+
+```{r, herErr}
+load("../data/inputs/HER/NSAS_HAWG2022_sf.RData")
+
+
+om1=herRet[[1]]
+herErr=laply(herRet, function(x){
+  yr=ac(dims(fbar(x))$maxyear)
+  
+  c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
+    ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
+
+save(herErr, file="../data/om/herErr.RData")
+```
+
+```{r, macErr}
+load("../data/om/macRet.RData")
+
+om1=macRet[[1]]
+macErr=laply(macRet, function(x){
+  yr=ac(dims(fbar(x))$maxyear)
+  
+  c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
+    ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
+
+save(macErr, file="../data/om/macErr.RData")
+```
+
+## Retrospective analyses
+
+```{r}
+plot(window(whbRet,start=1990))+
+  theme_bw()+
+  theme(legend.position="none")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Blue whiting: retrospective runs. 
+
+```{r}
+load("../data/om/herRet.RData")
+
+plot(window(herRet,start=1990))+
+  theme_bw()+
+  theme(legend.position="none")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Herring: retrospective runs. 
+
+```{r}
+plot(window(macRet,start=1990))+
+  theme_bw()+
+  theme(legend.position="none")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Mackerel: retrospective runs. 
+
+## Assessment Error
+
+```{r, errWhb, fig.height=8, fig.width=8}
+dt=as.data.frame(rmvnorm(1000,c(1,1),cov(whbErr[-1,])))
+
+names(dt)=c("stock","harvest")
+kobePhaseMar(dt,quadcol=c("white","white","white","white"),
+  xlab="F",ylab="SSB")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Blue whiting: assessment error 
+
+
+```{r, errHer, fig.height=8, fig.width=8}
+dt=as.data.frame(rmvnorm(1000,c(1,1),cov(herErr[-1,])))
+
+names(dt)=c("stock","harvest")
+kobePhaseMar(dt,quadcol=c("white","white","white","white"),
+  xlab="F",ylab="SSB")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Herring: assessment error
+
+```{r, errMac, fig.height=8, fig.width=8}
+dt=as.data.frame(rmvnorm(1000,c(1,1),cov(macErr[-1,])))
+
+names(dt)=c("stock","harvest")
+kobePhaseMar(dt,quadcol=c("white","white","white","white"),
+  xlab="F",ylab="SSB")
+```
+
+**Figure `r iFig=iFig+1; iFig`** Mackerel: assessment error
+
+# Funding
+
+# References
