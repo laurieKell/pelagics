@@ -147,7 +147,7 @@ macs=FLStocks("ICES"=mac,"Fmsy"=fwd(mac,sr=rec(mac),
 
 ## ICES Assessments with an $F_{MSY}$ projection
 
-```{r}
+```{r, whb-ass}
 p<-function(ices,ref,yr=1980){
   
   p1=plot(ices,metrics=list(Rec   =rec, 
@@ -170,13 +170,13 @@ p(whbs,attributes(ices[["whb.27.1-91214"]])$benchmark)
 **Figure `r iFig=iFig+1; iFig`** Blue whiting: assessment and $F_{MSY}$ projection compared. 
 
 
-```{r}
+```{r, her-ass}
 p(hers,attributes(ices[["her.27.3a47d"]])$benchmark)
 ```
 
 **Figure `r iFig=iFig+1; iFig`** Herring: assessment and $F_{MSY}$ projection compared. 
 
-```{r}
+```{r, mac-ass}
 p(macs,attributes(ices[["mac.27.nea"]])$benchmark)
 ```
 
@@ -226,7 +226,7 @@ save(macErr, file="../data/om/macErr.RData")
 
 ## Retrospective analyses
 
-```{r}
+```{r, whb-retro}
 plot(window(whbRet,start=1990))+
   theme_bw()+
   theme(legend.position="none")
@@ -234,7 +234,7 @@ plot(window(whbRet,start=1990))+
 
 **Figure `r iFig=iFig+1; iFig`** Blue whiting: retrospective runs. 
 
-```{r}
+```{r, her-retro}
 load("../data/om/herRet.RData")
 
 plot(window(herRet,start=1990))+
@@ -244,7 +244,7 @@ plot(window(herRet,start=1990))+
 
 **Figure `r iFig=iFig+1; iFig`** Herring: retrospective runs. 
 
-```{r}
+```{r, mac-retro}
 plot(window(macRet,start=1990))+
   theme_bw()+
   theme(legend.position="none")
@@ -254,7 +254,7 @@ plot(window(macRet,start=1990))+
 
 ## Assessment Error
 
-```{r, errWhb, fig.height=8, fig.width=8}
+```{r, whb-err, fig.height=8, fig.width=8}
 dt=as.data.frame(rmvnorm(1000,c(1,1),cov(whbErr[-1,])))
 
 names(dt)=c("stock","harvest")
@@ -265,7 +265,7 @@ kobePhaseMar(dt,quadcol=c("white","white","white","white"),
 **Figure `r iFig=iFig+1; iFig`** Blue whiting: assessment error 
 
 
-```{r, errHer, fig.height=8, fig.width=8}
+```{r, her-err, fig.height=8, fig.width=8}
 dt=as.data.frame(rmvnorm(1000,c(1,1),cov(herErr[-1,])))
 
 names(dt)=c("stock","harvest")
@@ -275,7 +275,7 @@ kobePhaseMar(dt,quadcol=c("white","white","white","white"),
 
 **Figure `r iFig=iFig+1; iFig`** Herring: assessment error
 
-```{r, errMac, fig.height=8, fig.width=8}
+```{r, mac-err, fig.height=8, fig.width=8}
 dt=as.data.frame(rmvnorm(1000,c(1,1),cov(macErr[-1,])))
 
 names(dt)=c("stock","harvest")
