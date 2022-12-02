@@ -3,18 +3,18 @@ title: "**Pelagics**"
 subtitle: "Operating Model Conditioning"
 author: "L Kell"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output: html_document
 mathjax: TRUE
 fig_width: 6 
 fig_height: 4 
 tags: FLR FLCore introduction
 license: Creative Commons Attribution-ShareAlike 4.0 International Public License
-bibliography: /home/laurie/Desktop/refs.bib
+# bibliography: refs.bib
 ---
 
 ```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-
+# getwd()
 library(knitr)
 
 opts_chunk$set(cache     =TRUE, 
