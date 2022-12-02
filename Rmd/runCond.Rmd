@@ -36,7 +36,10 @@ iTab=0
 
 ```{r, pkgs}
 #install_github("flr/FLfse/FLfse")
-#install_github('fishfollower/SAM/stockassessment', ref='components')
+#install.packages("FLBRP", repos="http://flr-project.org/R")
+#remotes::install_github("flr/FLasher")
+#remotes::install_github('fishfollower/SAM/stockassessment', ref='components')
+#remotes::install_github("flr/FLSAM")
 
 library(FLCore)
 library(ggplotFL)
@@ -44,7 +47,10 @@ library(FLfse)
 library(FLBRP)
 library(FLasher)
 library(FLSAM)
-library(kobe)
+library(kobe)   #remotes::install_github("flr/kobe")
+
+library(rjson) # install.packages("rjson"); used for dropbox function
+library(RJSONIO)
 
 library(TMB)
 library(stockassessment)
@@ -58,58 +64,67 @@ library(grid)
 library(compositions)
 
 theme_set(theme_bw(16))
+
 ```
 
 ```{r, source}
 source('../R/kobe-phaseMar.R')
 source('../R/kobe-phase.R')
+source('../R/get_dropbox.r')
+
+dropboxdir <- file.path(get_dropbox(), "pelagics")
+
 ```
 
 
 ```{r, ices}
-load("../data/inputs/ices.RData")
+load(file.path(dropboxdir, "data/inputs/ices.RData"))
 bmk=laply(ices, function(x) attributes(x)$benchmark)
 ```
 
 ```{r, assessment-whb}
-load("../data/inputs/WHB/run/model.RData")
+load(file.path(dropboxdir, "data/inputs/WHB/run/model.RData"))
+
 whb=SAM2FLStock(fit)
 whbR=FLBRP(whb,nyears=20)
 params(whbR)[]=median(rec(whb))
 
-save(whb,whbR,file="../data/om/whb.RData")
+save(whb,whbR,file=file.path(dropboxdir, "data/om/whb.RData"))
 ```
 
 ```{r, assessment-her}
-load("../data/inputs/HER/NSAS_HAWG2022_sf.RData")
+load(file.path(dropboxdir, "data/inputs/HER/NSAS_HAWG2022_sf.RData"))
+
 her=NSH
 herR=FLBRP(her,nyears=20)
 params(herR)[]=median(rec(her))
 
-save(her,herR,file="../data/om/her.RData")
+save(her,herR,file=file.path(dropboxdir, "data/om/her.RData"))
 ```
 
 ```{r, assessment-mac}
-load("../data/inputs/MAC/model fit.RData")
+load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
+
 mac =SAM2FLStock(fit.new)
 mac=window(mac,end=2021)
 macR=FLBRP(mac,nyears=20)
 params(macR)[]=median(rec(mac))
 
-save(mac,macR,file="../data/om/mac.RData")
+save(mac,macR,file=file.path(dropboxdir, "data/om/mac.RData"))
 ```
 
 
 ```{r, retro-whb}
-load("../data/inputs/WHB/run/retro.RData")
+load(file.path(dropboxdir, "data/inputs/WHB/run/retro.RData"))
+
 whbRet=FLStocks(llply(RETRO, SAM2FLStock)) 
 
-save(whbRet,file="../data/om/whbRet.RData")
+save(whbRet,file=file.path(dropboxdir, "data/om/whbRet.RData"))
 ```
 
 ```{r, retro-her}
-load("../data/inputs/HER/NSAS_HAWG2022_sf_retro.RData")
-load("../data/om/her.RData")
+load(file.path(dropboxdir, "data/inputs/HER/NSAS_HAWG2022_sf_retro.RData"))
+load(file.path(dropboxdir, "data/om/her.RData"))
 
 herRet=FLStocks(llply(NSH.retro, function(x) {
   res         =window(her,end=dims(x)$maxyear)
@@ -117,19 +132,19 @@ herRet=FLStocks(llply(NSH.retro, function(x) {
   harvest(res)=harvest(x)
   res}))
 
-save(herRet,file="../data/om/herRet.RData")
+save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
 ```
 
 ```{r, retro-mac}
-load("../data/inputs/MAC/retro.RData")
+load(file.path(dropboxdir, "data/inputs/MAC/retro.RData"))
 macRet=FLStocks(llply(ret,SAM2FLStock))
 
-save(macRet,file="../data/om/macRet.RData")
+save(macRet,file=file.path(dropboxdir, "data/om/macRet.RData"))
 ```
 
 
 ```{r, msy}
-load("../data/inputs/ices.RData")
+# load("../data/inputs/ices.RData")
 
 #f you call fwd(FLStock) you can set sr=rec(FLStock) and it will set internally rec~a and the params by year as SRR
 
@@ -185,7 +200,7 @@ p(macs,attributes(ices[["mac.27.nea"]])$benchmark)
 
 
 ```{r, whbErr}
-load("../data/om/whbRet.RData")
+load(file.path(dropboxdir, "data/om/whbRet.RData"))
 
 om1=whbRet[[1]]
 whbErr=laply(whbRet, function(x){
@@ -194,12 +209,12 @@ whbErr=laply(whbRet, function(x){
   c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
-save(whbErr, file="../data/om/whbErr.RData")
+save(whbErr,file=file.path(dropboxdir, "data/om/whbErr.RData"))
 ```
 
 ```{r, herErr}
-load("../data/inputs/HER/NSAS_HAWG2022_sf.RData")
-
+# load("../data/inputs/HER/NSAS_HAWG2022_sf.RData")
+load(file.path(dropboxdir, "data/om/herRet.RData"))
 
 om1=herRet[[1]]
 herErr=laply(herRet, function(x){
@@ -208,11 +223,13 @@ herErr=laply(herRet, function(x){
   c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
-save(herErr, file="../data/om/herErr.RData")
+save(herErr,file=file.path(dropboxdir, "data/om/herErr.RData"))
+# save(herErr, file="../data/om/herErr.RData")
 ```
 
 ```{r, macErr}
-load("../data/om/macRet.RData")
+load(file.path(dropboxdir, "data/om/macRet.RData"))
+# load("../data/om/macRet.RData")
 
 om1=macRet[[1]]
 macErr=laply(macRet, function(x){
@@ -221,7 +238,8 @@ macErr=laply(macRet, function(x){
   c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
-save(macErr, file="../data/om/macErr.RData")
+save(macErr,file=file.path(dropboxdir, "data/om/macErr.RData"))
+# save(macErr, file="../data/om/macErr.RData")
 ```
 
 ## Retrospective analyses
@@ -235,7 +253,7 @@ plot(window(whbRet,start=1990))+
 **Figure `r iFig=iFig+1; iFig`** Blue whiting: retrospective runs. 
 
 ```{r, her-retro}
-load("../data/om/herRet.RData")
+# Sload("../data/om/herRet.RData")
 
 plot(window(herRet,start=1990))+
   theme_bw()+
