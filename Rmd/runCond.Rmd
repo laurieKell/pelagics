@@ -3,7 +3,7 @@ title: "**Pelagics**"
 subtitle: "Operating Model Conditioning"
 author: "L Kell"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+output: pdf_document
 mathjax: TRUE
 fig_width: 6 
 fig_height: 4 
@@ -63,22 +63,27 @@ library(grid)
 
 library(compositions)
 
-theme_set(theme_bw(16))
 
+theme_set(theme_bw(16))
 ```
 
 ```{r, source}
 source('../R/kobe-phaseMar.R')
 source('../R/kobe-phase.R')
 source('../R/get_dropbox.r')
+```
 
-dropboxdir <- file.path(get_dropbox(), "pelagics")
 
+```{r, dbox}
+dropboxdir<-try(file.path(get_dropbox(), "pelagics"))
+
+if ("try-error"%in%is(dropboxdir))
+  dropboxdir="~/Dropbox/pelagics"
 ```
 
 
 ```{r, ices}
-load(file.path(dropboxdir, "data/inputs/ices.RData"))
+load(file.path(dropboxdir, "data/inputs/ices.RData")) 
 bmk=laply(ices, function(x) attributes(x)$benchmark)
 ```
 

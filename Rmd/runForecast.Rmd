@@ -57,11 +57,23 @@ library(compositions)
 theme_set(theme_bw(16))
 ```
 
+
+```{r, dbox}
+source('../R/get_dropbox.r')
+
+dropboxdir<-try(file.path(get_dropbox(), "pelagics"))
+
+if ("try-error"%in%is(dropboxdir))
+  dropboxdir="~/Dropbox/pelagics"
+```
+
+
 ```{r}
-load("../data/inputs/ices.RData")
-load("../data/om/whb.RData")
-load("../data/om/her.RData")
-load("../data/om/mac.RData")
+load(file.path(dropboxdir,"data/inputs/ices.RData"))
+load(file.path(dropboxdir,"data/om/whb.RData"))
+load(file.path(dropboxdir,"data/om/her.RData"))
+load(file.path(dropboxdir,"data/om/mac.RData"))
+refs=read.csv(file.path(dropboxdir,"data/inputs/refs.csv"),header=T)
 
 prj<-function(x,fmsy,yrs=2001:2021,nit=100){
   f0=array(c(rep(c(1,rep(0,dim(x)[1])),dim(x)[1]-1),1),c(dim(harvest(x))[1],dim(harvest(x))[1]),
@@ -81,16 +93,34 @@ prj<-function(x,fmsy,yrs=2001:2021,nit=100){
   res}
 
 whbFwd=prj(whb,attributes(ices[["whb.27.1-91214"]])$benchmark$Fmsy)
-save(whbFwd,file="../data/om/whbFwd.RData")
+save(whbFwd,file=file.path(dropboxdir,"data/om/whbFwd.RData"))
 
 herFwd=prj(her,attributes(ices[["her.27.3a47d"]])$benchmark$Fmsy)
-save(herFwd,file="../data/om/herFwd.RData")
+save(herFwd,file=file.path(dropboxdir,"data/om/herFwd.RData"))
 
 macFwd=prj(mac,attributes(ices[["mac.27.nea"]])$benchmark$Fmsy)
-save(macFwd,file="../data/om/macFwd.RData")
+save(macFwd,file=file.path(dropboxdir,"data/om/macFwd.RData"))
 ```
 
 
+```{r}
+ggplot(refs)+
+  geom_line(aes(assessmentyear,flim),col="red")+
+  geom_line(aes(assessmentyear,fpa), col="orange")+
+  geom_line(aes(assessmentyear,fmsy),col="green")+
+  facet_grid(spp~.,scale="free")+
+  xlab("Year")+ylab("F")
+```
+
+
+```{r}
+ggplot(refs)+
+  geom_line(aes(assessmentyear,blim),       col="red")+
+  geom_line(aes(assessmentyear,bpa),        col="orange")+
+  geom_line(aes(assessmentyear,msybtrigger),col="green")+
+  facet_grid(spp~.,scale="free")+
+  xlab("Year")+ylab("Biomass")
+```
 
 ```{r}
 plot(window(whbFwd,start=1990))+
@@ -101,7 +131,7 @@ plot(window(whbFwd,start=1990))+
 **Figure `r iFig=iFig+1; iFig`** Blue whiting: simple projection. 
 
 ```{r}
-load("../data/inputs/HER/NSAS_HAWG2022_sf_retro.RData")
+load(file=file.path(dropboxdir,"data/inputs/HER/NSAS_HAWG2022_sf_retro.RData"))
 
 plot(window(herFwd,start=1990))+
   theme_bw()+
@@ -116,11 +146,11 @@ plot(window(macFwd,start=1990))+
   theme(legend.position="none")
 ```
 
-**Figure `r iFig=iFig+1; iFig`** Mackerel: simple projection. load("../data/om/her.RData")
+**Figure `r iFig=iFig+1; iFig`** Mackerel: simple projection. load(file=file.path(dropboxdir,"data/om/her.RData")
 
 
 ```{r, whbErr}
-load("../data/om/whbRet.RData")
+load(file=file.path(dropboxdir,"data/om/whbRet.RData"))
 
 om1=whbRet[[1]]
 whbErr=laply(whbRet, function(x){
@@ -129,7 +159,7 @@ whbErr=laply(whbRet, function(x){
   c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
-save(whbErr, file="../data/om/whbErr.RData")
+save(whbErr, file=file.path(dropboxdir,"data/om/whbErr.RData"))
 ```
 
 # Funding
