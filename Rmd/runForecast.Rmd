@@ -104,22 +104,17 @@ save(macFwd,file=file.path(dropboxdir,"data/om/macFwd.RData"))
 
 
 ```{r}
-ggplot(refs)+
-  geom_line(aes(assessmentyear,flim),col="red")+
-  geom_line(aes(assessmentyear,fpa), col="orange")+
-  geom_line(aes(assessmentyear,fmsy),col="green")+
+ggplot(melt(refs[,c("spp","assessmentyear","flim","fpa","fmsy")],id.vars=c("spp","assessmentyear")))+
+  geom_point(aes(assessmentyear,as.numeric(value),colour=variable))+
   facet_grid(spp~.,scale="free")+
   xlab("Year")+ylab("F")
 ```
 
-
 ```{r}
-ggplot(refs)+
-  geom_line(aes(assessmentyear,blim),       col="red")+
-  geom_line(aes(assessmentyear,bpa),        col="orange")+
-  geom_line(aes(assessmentyear,msybtrigger),col="green")+
+ggplot(melt(refs[,c("spp","assessmentyear","blim","bpa","msybtrigger")],id.vars=c("spp","assessmentyear")))+
+  geom_point(aes(assessmentyear,as.numeric(value),colour=variable))+
   facet_grid(spp~.,scale="free")+
-  xlab("Year")+ylab("Biomass")
+  xlab("Year")+ylab("SSB")
 ```
 
 ```{r}
