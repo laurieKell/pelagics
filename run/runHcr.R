@@ -1,206 +1,106 @@
-library(FLasher)
-library(FLBRP)
-library(FLAssess)
-library(mpb)
-library(ggplotFL)
-library(plyr)
-library(magrittr)
+require(FLasher)
+require(FLBRP)
+require(FLAssess)
+require(mpb)
+require(ggplotFL)
+require(plyr)
+require(magrittr)
 
-#library(rdrop2)
+#require(rdrop2)
 #drop_auth()
 
-setwd("/home/laurie/Desktop/projects/pelagics/R")
+dropboxdir="~/Dropbox/pelagics"
 
-source('../R/hcrICES.R')
+#setwd("/home/laurie/Desktop/projects/pelagics/R")
 
-load("../data/inputs/ices.RData")
+source('~/Desktop/projects/pelagics/R/hcrICESV2.R')
 
-stks=names(ices)
+stkid=c("whb.27.1-91214","mac.27.nea","her.27.3a47d")
 
-stk="whb"
-
-load(paste("../data/om/",stk,".RData",sep=""))
-load(paste("../data/om/",stk,"Fwd.RData",sep=""))
-load(paste("../data/om/",stk,"Err.RData",sep=""))
-
-om =get(paste(stk,"Fwd",sep=""))
-eql=get(paste(stk,"R",  sep=""))
-err=get(paste(stk,"Err",sep=""))
-refpts=FLPar(attributes(ices[[stks[grep(stk,stks)]]])$benchmark)
-
-nits=dim(stock.n(om))[6]
-
-#"whb.27.1-91214" "mac.27.nea"     "her.27.3a47d"  
-
-mp=om
-m_ply(data.frame(year=2021:2001), function(year) {
-  res=FLBRP(window(mp,end=year),nyear=3)
-  
-  stock.wt(mp)[   ,ac(year)]=stock.wt(    res)
-  catch.wt(mp)[   ,ac(year)]=catch.wt(    res)
-  landings.wt(mp)[,ac(year)]=landings.wt( res)
-  discards.wt(mp)[,ac(year)]=discards.wt( res)
-  
-  harvest(    mp)[,ac(year)]=catch.sel(   res)
-  catch.n(    mp)[,ac(year)]=catch.sel(   res)
-  landings.n( mp)[,ac(year)]=landings.sel(res)
-  discards.n( mp)[,ac(year)]=discards.sel(res)
-  
-  m(          mp)[,ac(year)]=m(           res)
-  mat(        mp)[,ac(year)]=mat(         res)
-  
-  mp<<-mp})
-mp=propagate(iter(mp,seq(nits)),nits)
-
-om=propagate(iter(om,seq(nits)),nits)
-
-fit.new[[1]][[2]][names(fit.new[[1]][[1]])=="logR"][-43]
-fit.new[[1]][[1]][names(fit.new[[1]][[1]])=="logR"][-43]
-
-par0=array(c(ftar=refpts["Fmsy"],btrig=refpts["Btrigger"],fmin=refpts["Fmsy"],Blim=refpts["Blim"]),
-           dim=c(4),
-           dimnames=list(c("ftar","btrig","fmin","blim")))
-
-par1=array(c(ftar=refpts["Fmsy"],btrig=refpts["Btrigger"],fmin=FLPar(0.05),blim=refpts["Blim"]),
-           dim=c(4),
-           dimnames=list(c("ftar","btrig","fmin","blim")))
-
+#stk     ="her"
+#stk     ="mac"
+nits    =100
 start   =2001
 end     =2021
 interval=1
 
-err =rlnorm(nits,FLQuant(0,dimnames=list(year=2001:2021)),var(err[-1,1])^0.5)
+load(paste(file.path(dropboxdir,paste("data/om/",stk,"OM.RData",sep=""))))
 
-srDev=rec(om)%=%1
+ices=get(paste(stk,"Ctc", sep=""))
+fmsy=get(paste(stk,"Fmsy",sep=""))
+err =get(paste(stk,"Err", sep=""))
+ftar=get(paste(stk,"Ftar",sep=""))
+refs=get(paste(stk,"Refs",sep=""))
+eql =FLBRP(ices)
 
-#Reference scenarios with steepness=1
-sims=list("ICES"=list(om,NULL))
-sims[["fmsy"]]=list(fwd(om,fbar=FLQuant(1,dimnames=list(year=2001:2021))%=%0.32,
-                           sr  =rec(om)),
-                     NULL)
-sims[["0.6"]]=list(fwd(om,fbar=FLQuant(1,dimnames=list(year=2001:2021))%=%0.6,
-                          sr =rec(om)),
-                    NULL)
-sims[["sim0.0"]]=hcrICES(om,eql,rec(om)%=%1,
-                      par0,
-                      start=start,end=end,interval=interval)
+par=as(model.frame(mcf(FLQuants(ftar=ftar,
+                                btrig=refs[["msybtrigger"]][,ac(start:end)],
+                                fmin=ftar%=%0.05,
+                                blim=refs[["blim"]][,ac(start:end)])),drop=T)[,-1],"FLPar")
+par["btrig"][is.na(par["btrig"])]=min(par["btrig"],na.rm=T)
+par["blim"][ is.na(par["blim"])] =min(par["blim"],na.rm=T)
 
-# HCRs 
-sims[["sim0"]]=hcrICES(om,eql,srDev,
-                      par0,
-                      start,end,interval,
-                      err=err,
-                      bndTac=c(0,Inf))
-sims[["sim1"]]=hcrICES(om,eql,srDev,
-                      par1,
-                      start,end,interval,
-                      err=err,
-                      bndTac=c(0,Inf))
+err     =rlnorm(nits,FLQuant(0,dimnames=list(year=start:end)),var(err[-1,1])^0.5)
 
-# HCRs with bounds 
-sims[["sim0_bnd"]]=hcrICES(om,eql,srDev,
-                      par0,
-                      start,end,interval,  
-                      err=err,
-                      bndTac=c(0.8,1.25))
-sims[["sim1_bnd"]]=hcrICES(om,eql,srDev,
-                      par1,
-                      start,end,interval,
-                      err=err,
-                      bndTac=c(0.80,1.25))
+implErr=FLQuants(NULL)
+implErr[["10%"]]=propagate(FLQuant(0.10,dimnames=list(year=(start-1):end)),nits)
+implErr[["20%"]]=propagate(FLQuant(0.20,dimnames=list(year=(start-1):end)),nits)
+implErr[["30%"]]=propagate(FLQuant(0.30,dimnames=list(year=(start-1):end)),nits)
 
-plot(subset(sims[["sim2_bnd"]][[2]],hcrYrs==2003)[,"ssb"],
-     ssb(sims[["sim2_bnd"]][[1]])[,"2002"])
+implErr[["10% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.10,10)),dimnames=list(year=(start-1):end)),nits)
+implErr[["20% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.20,10)),dimnames=list(year=(start-1):end)),nits)
+implErr[["30% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.30,10)),dimnames=list(year=(start-1):end)),nits)
 
-x=subset(sims[["sim2_bnd"]][[2]],hcrYrs==2003)[,"ssb"]
-y=ssb(sims[["sim2_bnd"]][[1]])[,"2002"]
+implErr[["random final"]]=implErr[[4]]
+implErr[["random final"]][,ac(2012:2021)][]=sample(c(0.10,0.20,0.30),nits*10,T)
 
+#Scenario
+sims=list("ICES"=list(ices,NULL))
+sims[["Fmsy"]]=list(fmsy,NULL)
 
-#######################################################
-## Scenarios with random recruitment ##################
-#######################################################
-srDevAr=rlnoise(nits,iter(rec(om),1)%=%0,0.6,0.8)
-sims[["acf1"]]=hcrICES(om,eql,srDevAr,
-                      par1,
-                      start,end,interval,
-                      err=err,
-                      bndTac=c(0,Inf))
+## HCRs ########################################################################
+sims[["HCR1"]]     =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf))
+sims[["HCR2"]]     =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            bndWhen ="blim")
+sims[["HCR1 bnd"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25))
+sims[["HCR1 +10%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["10%"]])
+sims[["HCR1 +20%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["20%"]])
+sims[["HCR1 +30%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["30%"]])
+sims[["HCR1 +10% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["10%"]])
+sims[["HCR1 +20% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["20%"]])
+sims[["HCR1 +30% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["30%"]])
 
-### Beverton and Holt with steepness=1
-### Assess Error = 0.5
-### 2013-2021
-## Scenarios with random recruitment
-srMn=fmle(as.FLSR(om1,model="geomean"),
-         control=list(silent=TRUE))
+sims[["HCR2 bnd"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim")
+sims[["HCR2 +10% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                bndTac=c(0.8,1.25),
+                                bndWhen ="blim",
+                                implErr=implErr[["10%"]])
+sims[["HCR2 +20% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                bndTac=c(0.8,1.25),
+                                bndWhen ="blim",
+                                implErr=implErr[["20%"]])
+sims[["HCR2 +30% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                bndTac=c(0.8,1.25),
+                                bndWhen ="blim",
+                                implErr=implErr[["30%"]])
 
-eqlMn=FLBRP(om1,sr=srMn) 
+#plot(FLStocks(llply(sims,function(x) x[[1]])))
 
-sims[["Box13-1"]]=hcrICES(om,eqlMn,srDev=exp(residuals(srMn)),
-                          par1,
-                          start=2013,end,interval,
-                          err=rlnorm(nits,FLQuant(0,dimnames=list(year=2001:2021)),0.5),
-                          bndTac=c(0,Inf))
-sims[["Box13-1-bnd"]]=hcrICES(om,eqlMn,srDev=exp(residuals(srMn)),
-                          par1,
-                          start=2013,end,interval,
-                          err=rlnorm(nits,FLQuant(0,dimnames=list(year=2001:2021)),0.5),
-                          bndTac=c(0.8,1.25))
-
-sims=llply(sims, function(x) x)
-
-plot(FLStocks(llply(sims,function(x) x[[1]])))
-
-save(sims,par0,par1,file=paste("../data/results/",stk,"Sims.RData",sep=""),compress="xz")
-
-
-### Beverton and Holt with steepness estimated
-
-#Reference scenarios
-sim2=list("ICES"=list(om,NULL))
-sim2[["fmsy"]]=list(fwd(om,fbar=FLQuant(1,dimnames=list(year=2001:2021))%=%0.32,
-                        sr=eql,residuals=propagate(exp(residuals(sr)),1000)),
-                    NULL)
-sim2[["0.6"]]=list(fwd(om,fbar=FLQuant(1,dimnames=list(year=2001:2021))%=%0.6,
-                       sr=eql,residuals=propagate(exp(residuals(sr)),1000)),
-                   NULL)
-sim2[["sim0.0"]]=hcrICES(om,eql,srDev,
-                         par0,
-                         start=start,end=end,interval=interval)
-
-# HCRs 
-sim2[["sim0"]]=hcrICES(om,eql,srDev,
-                       par0,
-                       start,end,interval,
-                       err=err,
-                       bndTac=c(0,Inf))
-sim2[["sim1"]]=hcrICES(om,eql,srDev,
-                       par1,
-                       start,end,interval,
-                       err=err,
-                       bndTac=c(0,Inf))
-
-# HCRs with bounds 
-sim2[["sim0_bnd"]]=hcrICES(om,eql,srDev,
-                           par0,
-                           start,end,interval,  
-                           err=err,
-                           bndTac=c(0.8,1.25))
-sim2[["sim1_bnd"]]=hcrICES(om,eql,srDev,
-                           par1,
-                           start,end,interval,
-                           err=err,
-                           bndTac=c(0.80,1.25))
-
-## Scenarios with rsandom recruitment
-srDev=rlnoise(nits,iter(rec(om),1)%=%0,0.6,0.8)
-sim2[["acf1"]]=hcrICES(om,eql,srDevAr,
-                       par1,
-                       start,end,interval,
-                       err=err,
-                       bndTac=c(0,Inf))
-
-sim2=llply(sim2, function(x) x)
-
-plot(FLStocks(llply(sim2,function(x) x[[1]])))
-
-save(sim2,par0,par1,file=paste("../data/results/",stk,"Sim.RData",sep=""),compress="xz")
+save(sims,refs,file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))

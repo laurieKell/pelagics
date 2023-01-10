@@ -1,3 +1,32 @@
+pmYear<-function(x){
+  FLQuants(catch=FLQuantPoint(catch(x)),
+           ssb  =FLQuantPoint(ssb(  x)),
+           rec  =FLQuantPoint(rec(  x)),
+           aav  =FLQuantPoint(as.FLQuant(adply(catch(x), c(1,3:6),  function(y) 
+             data.frame(year=names(y)[-length(y)],
+                        data=(y[-1]-y[-length(y)])/y[-length(y)])))))}
+
+pmIter<-function(x){
+  # Median total catch over whole time period, by iter
+  p1=FLPar(catch.50=aaply(catch(x),6,median))
+  
+  # Median inter-annual variability over whole time period, by iter 
+  p2=FLPar(iav.50=aaply(catch(x), 6,  function(y) var((y[-1]-y[-length(y)])/y[-length(y)])))
+  
+  # The median Inter-Annual Variability per iteration
+  p3=FLPar(aav=array(aaply(catch(x), 6,  function(y) median(var((y[-1]-y[-length(y)])/y[-length(y)]))),c(1,dim(x)[6])))
+  
+  rbind(p1,p2,p3)}
+
+stab<-function(x,u=0.2500,l=-0.2000){
+  # The number of years when the stability mechanism was applied
+  aav  =as.FLQuant(adply(x, c(1,3:6),  function(y) 
+    data.frame(year=names(y)[-length(y)],
+               data=(y[-1]-y[-length(y)])/y[-length(y)])))
+
+  FLQuants("lower"=apply(as.FLQuant((round(aav,4)==l)),2,sum),
+           "upper"=apply(as.FLQuant((round(aav,4)==u)),2,sum))}
+
 
 pm<-function(x){
   
