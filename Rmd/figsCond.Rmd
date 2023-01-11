@@ -106,7 +106,7 @@ prj<-function(x,ftar,
   res=fwd(x,sr=rec(x),control=control)
   res}
 
-load("/home/laurie/Desktop/projects/pelagics/data/inputs/MAC/model fit.RData")
+load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
 
 sam2FLQuant<-function(x,row=1){
   FLQuants(ssb     =FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logssb"],   dimnames=list(year=x[["data"]][["years"]])),
@@ -276,10 +276,6 @@ assessment[["mac"]]=plot(mac)+
 ```
 
 
-```{r}
-save(assessment,file="~/Desktop/tmp/t.RData")
-```
-
 ```{r, assessment, fig.width=12,fig.height=6, cache=FALSE}
 library(ggpubr)
 ggarrange(assessment[["whb"]]+theme_bw()+
@@ -356,7 +352,7 @@ geom_polygon(aes(x,y,fill=f),data=quad,alpha=0.2)+
 
 
 ```{r, whb-fmsy}
-load("/home/laurie/Desktop/projects/pelagics/data/inputs/WHB/run/model.RData")
+load(file.path(dropboxdir, "data/inputs/WHB/run/model.RData"))
 
 vpa=whb+FLAssess:::VPA(whb)
 
@@ -387,7 +383,7 @@ pwhb$data$qname=factor(pwhb$data$qname,levels=c("Rec","F","Catch","SSB"))
 herFtar=as.FLQuant(subset(refs,spp=="Herring"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
 herFtar[is.na(herFtar)]=0.25
 
-load("/home/laurie/Desktop/projects/pelagics/data/inputs/HER/NSAS_HAWG2022_sf_replicates.RData")
+load(file.path(dropboxdir, "data/inputs/HER/NSAS_HAWG2022_sf_replicates.RData"))
 res=melt(laply(NSH.sim,stock.n))
 names(res)=c("iter","age","year","data")
 recs=as.FLQuant(res)[1,,,,,1:nits]
@@ -412,7 +408,7 @@ pher$data$qname=factor(pher$data$qname,levels=c("Rec","F","Catch","SSB"))
 ```
 
 ```{r, mac-fmsy}
-load("/home/laurie/Desktop/projects/pelagics/data/inputs/MAC/model fit.RData")
+load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
 
 x=fit.new 
 snVar=FLQuant(x[["sdrep"]][["diag.cov.random"]][names(x[["sdrep"]][[7]])=="logN"],dimnames=list(age=0:12,year=1980:2022))^0.5
@@ -630,7 +626,7 @@ kobePhaseMar(dt,quadcol=c("white","white","white","white"),
 **Figure `r iFig=iFig; iFig`c** Mackerel: assessment error
 
 ```{r, eval=F}
-load("/home/laurie/Desktop/projects/pelagics/data/inputs/MAC/model fit.RData")
+load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
 load(file.path(dropboxdir,"data/om/mac.RData"))
 
 value=sam2FLQuant(fit.new)
@@ -668,21 +664,21 @@ sn=x[[1]][[7]][names(x[[1]][[7]])=="logN"]
 
 ```{r, runWhb}
 stk="whb" 
-source("/home/laurie/Desktop/projects/pelagics/run/runHcr.R") 
+source("../run/runHcr.R") 
 ```
 
 ```{r, runHer}
 stk="her"  
-source("/home/laurie/Desktop/projects/pelagics/run/runHcr.R") 
+source("../run/runHcr.R") 
 ```
 
 ```{r, runMac}
 stk="mac"  
-source("/home/laurie/Desktop/projects/pelagics/run/runHcr.R")
+source("../run/runHcr.R")
 ```
 
 ```{r, smry, cache=FALSE}
-source("~/Desktop/projects/pelagics/R/pm.R") 
+source("../R/pm.R") 
 
 library(FLCore)
 library(ggplotFL)
