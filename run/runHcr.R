@@ -13,7 +13,7 @@ dropboxdir="~/Dropbox/pelagics"
 
 #setwd("/home/laurie/Desktop/projects/pelagics/R")
 
-source(file.path(dropboxdir, "R/hcrICESV2.R"))
+source("../R/hcrICESV2.R")
 
 stkid=c("whb.27.1-91214","mac.27.nea","her.27.3a47d")
 

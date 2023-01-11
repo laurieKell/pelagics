@@ -662,14 +662,19 @@ stock.n(mac2)=stkn[,ac(1980:2021)]
 sn=x[[1]][[7]][names(x[[1]][[7]])=="logN"]
 ```
 
+
+```{r}
+print(getwd())
+```
+
 ```{r, runWhb}
 stk="whb" 
-source("../run/runHcr.R") 
+source("../run/runHcr.R")
 ```
 
 ```{r, runHer}
 stk="her"  
-source("../run/runHcr.R") 
+source("../run/runHcr.R")
 ```
 
 ```{r, runMac}
@@ -677,8 +682,8 @@ stk="mac"
 source("../run/runHcr.R")
 ```
 
-```{r, smry, cache=FALSE}
-source("../R/pm.R") 
+```{r, smry}
+source("../R/pm.R")
 
 library(FLCore)
 library(ggplotFL)
