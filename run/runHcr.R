@@ -13,6 +13,8 @@ dropboxdir="~/Dropbox/pelagics"
 
 #setwd("/home/laurie/Desktop/projects/pelagics/R")
 
+load(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep="")))
+
 source("../R/hcrICESV2.R")
 
 stkid=c("whb.27.1-91214","mac.27.nea","her.27.3a47d")
@@ -54,6 +56,45 @@ implErr[["30% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.30,10)),dimnames=list
 implErr[["random final"]]=implErr[[4]]
 implErr[["random final"]][,ac(2012:2021)][]=sample(c(0.10,0.20,0.30),nits*10,T)
 
+
+sims[["HCR1 bnd cap"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                bndTac=c(0.8,1.25),
+                                bndCap=0.4)
+sims[["HCR2 bnd cap"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                bndTac=c(0.8,1.25),
+                                bndWhen ="blim",
+                                bndCap=0.4)
+
+sims[["HCR1 +10% bnd cap"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                    bndTac=c(0.8,1.25),
+                                    implErr=implErr[["10%"]],
+                                    bndCap=0.4)
+sims[["HCR1 +20% bnd cap"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                    bndTac=c(0.8,1.25),
+                                    implErr=implErr[["20%"]],
+                                    bndCap=0.4)
+sims[["HCR1 +30% bnd cap"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                    bndTac=c(0.8,1.25),
+                                    implErr=implErr[["30%"]],
+                                    bndCap=0.4)
+
+sims[["HCR2 +10% bnd cap"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                    bndTac=c(0.8,1.25),
+                                    implErr=implErr[["10%"]],
+                                    bndWhen ="blim",
+                                    bndCap=0.4)
+sims[["HCR2 +20% bnd cap"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                    bndTac=c(0.8,1.25),
+                                    implErr=implErr[["20%"]],
+                                    bndWhen ="blim",
+                                    bndCap=0.4)
+sims[["HCR2 +30% bnd cap"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                                    bndTac=c(0.8,1.25),
+                                    implErr=implErr[["30%"]],
+                                    bndWhen ="blim",
+                                    bndCap=0.4)
+
+if (FALSE){
 #Scenario
 sims=list("ICES"=list(ices,NULL))
 sims[["Fmsy"]]=list(fmsy,NULL)
@@ -61,46 +102,59 @@ sims[["Fmsy"]]=list(fmsy,NULL)
 ## HCRs ########################################################################
 sims[["HCR1"]]     =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
                             bndTac=c(0,Inf))
-# sims[["HCR2"]]     =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0,Inf),
-#                             bndWhen ="blim")
-# sims[["HCR1 bnd"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0.8,1.25))
-# sims[["HCR1 +10%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0,Inf),
-#                             implErr=implErr[["10%"]])
-# sims[["HCR1 +20%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0,Inf),
-#                             implErr=implErr[["20%"]])
-# sims[["HCR1 +30%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0,Inf),
-#                             implErr=implErr[["30%"]])
-# sims[["HCR1 +10% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0.8,1.25),
-#                             implErr=implErr[["10%"]])
-# sims[["HCR1 +20% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0.8,1.25),
-#                             implErr=implErr[["20%"]])
-# sims[["HCR1 +30% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0.8,1.25),
-#                             implErr=implErr[["30%"]])
-# 
-# sims[["HCR2 bnd"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                             bndTac=c(0.8,1.25),
-#                             bndWhen ="blim")
-# sims[["HCR2 +10% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                                 bndTac=c(0.8,1.25),
-#                                 bndWhen ="blim",
-#                                 implErr=implErr[["10%"]])
-# sims[["HCR2 +20% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                                 bndTac=c(0.8,1.25),
-#                                 bndWhen ="blim",
-#                                 implErr=implErr[["20%"]])
-# sims[["HCR2 +30% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
-#                                 bndTac=c(0.8,1.25),
-#                                 bndWhen ="blim",
-#                                 implErr=implErr[["30%"]])
+sims[["HCR2"]]     =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            bndWhen ="blim")
+sims[["HCR1 bnd"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25))
+sims[["HCR1 +10%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["10%"]])
+sims[["HCR1 +20%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["20%"]])
+sims[["HCR1 +30%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["30%"]])
+sims[["HCR1 +10% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["10%"]])
+sims[["HCR1 +20% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["20%"]])
+sims[["HCR1 +30% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["30%"]])
+
+sims[["HCR2 bnd"]] =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim")
+sims[["HCR2 +10%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["10%"]])
+sims[["HCR2 +20%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["20%"]])
+sims[["HCR2 +30%"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["30%"]])
+sims[["HCR2 +10% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["10%"]])
+sims[["HCR2 +20% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["20%"]])
+sims[["HCR2 +30% bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["30%"]])}
+
 
 #plot(FLStocks(llply(sims,function(x) x[[1]])))
 
-#save(sims,refs,file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
+save(sims,refs,file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))

@@ -13,7 +13,7 @@ license: Creative Commons Attribution-ShareAlike 4.0 International Public Licens
 ---
 
 
-```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE, cache=FALSE}
+```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 # getwd()
 library(knitr)
@@ -276,7 +276,7 @@ assessment[["mac"]]=plot(mac)+
 ```
 
 
-```{r, assessment, fig.width=12,fig.height=6, cache=FALSE}
+```{r, assessment, fig.width=12,fig.height=6}
 library(ggpubr)
 ggarrange(assessment[["whb"]]+theme_bw()+
   theme(panel.grid.major =element_blank(),
@@ -366,14 +366,15 @@ stock.n(vpa)=rlnorm(nits,log(stock.n(whb)),sd[1:10,ac(1981:2022)])
 whb    =propagate(whb,nits)
 whbCtc =fwd(whb,catch=catch(whb)[,ac(2001:2021)],sr=rec(vpa))
 whbFmsy=fwd(whb,f=    whbFtar,                   sr=rec(vpa))
-pwhb=plot(window(FLStocks("Original"=whb,
+pwhb=plot(window(FLStocks("ICES"=whb,
+                          "VPA"=vpa,
                           #"ICES-f"  =fwd(whb,f=    fbar( whb)[,ac(2001:2021)],sr=rec(vpa)),
-                          "ICES-ctc"=whbCtc,
-                          "Fmsy"    =whbFmsy),
+                          #"Fmsy"    =whbFmsy
+                          "Reported catch"=whbCtc),
           1995))+
-   geom_line(aes(year,data,col=stock),
-            data=transform(subset(refs,spp=="Blue whiting"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
-   scale_color_manual(values=c("red","blue","green","orange","pink","purple"))+
+   # geom_line(aes(year,data,col=stock),
+   #          data=transform(subset(refs,spp=="Blue whiting"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
+   # scale_color_manual(values=c("red","blue","green","orange","pink","purple"))+
    scale_x_continuous(breaks=c(2001,2011,2021))
 
 pwhb$data$qname=factor(pwhb$data$qname,levels=c("Rec","F","Catch","SSB"))
@@ -393,15 +394,15 @@ vpa=her+FLAssess:::VPA(her)
 her=propagate(her,nits)  
 herCtc =fwd(her,catch=catch(her)[,ac(2001:2021)],sr=rec(vpa)%*%(recs%/%apply(recs,2,median))[,-76])
 herFmsy=fwd(her,f=    herFtar, sr=rec(vpa)%*%(recs%/%apply(recs,2,median))[,-76])
-pher=plot(window(FLStocks("VPA"=vpa,
-                          "Original"=her,
+pher=plot(window(FLStocks("ICES"=her,
+                          "VPA"=vpa,
                           #"ICES-f"  =fwd(her,f=    fbar( her)[,ac(2001:2021)],sr=recs),
-                          "ICES-ctc"=herCtc,
-                          "Fmsy"    =herFmsy)[2:4],
+                          #"Fmsy"    =herFmsy,
+                          "Reported catch"=herCtc),
           1995))+
-   geom_line(aes(year,data,col=stock),
-             data=transform(subset(refs,spp=="Herring"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
-   scale_color_manual(values=c("red","blue","green","orange","pink","purple","grey"))+
+   # geom_line(aes(year,data,col=stock),
+   #           data=transform(subset(refs,spp=="Herring"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
+   # scale_color_manual(values=c("red","blue","green","orange","pink","purple","grey"))+
    scale_x_continuous(breaks=c(2001,2011,2021))
 
 pher$data$qname=factor(pher$data$qname,levels=c("Rec","F","Catch","SSB"))
@@ -425,14 +426,15 @@ macFtar[is.na(macFtar)]=0.22
 
 macCtc =fwd(propagate(mac,nits),catch=catch(mac)[,ac(2001:2021)],sr=rec(vpa))
 macFmsy=fwd(propagate(mac,nits),f=    macFtar,                   sr=rec(vpa))
-pmac=plot(window(FLStocks("Original"=mac,
+pmac=plot(window(FLStocks("ICES"=mac,
+                          "VPA"=vpa,
                           #"ICES-f"  =fwd(mac,f=    fbar( mac)[,ac(2001:2021)],sr=rec(vpa)),
-                          "Fmsy"    =macFmsy,
-                          "ICES-ctc"=macCtc),
+                          #"Fmsy"    =macFmsy,
+                          "Reported catch"=macCtc),
           1995))+
-   geom_line(aes(year,data,col=stock),
-            data=transform(subset(refs,spp=="Mackerel"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
-   scale_color_manual(values=c("red","blue","green","orange","pink","purple"))+
+   # geom_line(aes(year,data,col=stock),
+   #          data=transform(subset(refs,spp=="Mackerel"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
+   # scale_color_manual(values=c("red","blue","green","orange","pink","purple"))+
    scale_x_continuous(breaks=c(2001,2011,2021))
 
 pmac$data$qname=factor(pmac$data$qname,levels=c("Rec","F","Catch","SSB"))
@@ -441,7 +443,7 @@ mac=fwd(propagate(mac,nits),catch=catch(mac)[,ac(2001:2021)],sr=rec(vpa))
 ```
 
 
-```{r, hind, fig.width=10,fig.height=6, cache=FALSE}
+```{r, hind, fig.width=10,fig.height=6}
 library(ggpubr)
 p=ggarrange(pwhb+theme_bw()+  
   theme(panel.grid.major =element_blank(),
@@ -461,9 +463,10 @@ p=ggarrange(pwhb+theme_bw()+
           nrow = 1,ncol=3,
           common.legend=TRUE,
           labels = c("WHB","HER","MAC")) 
+p
 ```
 
-**Figure `r iFig=iFig+1; iFig`** Comparison of historical assessments with projections at $F_{MSY}$. 
+**Figure `r iFig=iFig+1; iFig`** Comparison of ICES assessments with VPA, and projection with reported catches. 
 
 
 ## Projections
@@ -475,7 +478,7 @@ whbFtar[is.na(whbFtar)]=0.18
 whbFwd =prj(whb,whbFtar)
 whbFwd2=prj(whb,whbFtar%=%c(whbFtar[,dim(whbFtar)[2]]))
 
-proj=list("whb"=plot(window(FLStocks("Fmsy"=whbFwd,"Fmsy 2"=whbFwd2,"Status Quo"=whb),start=1990))+
+proj=list("whb"=plot(window(FLStocks("Fmsy"=whbFwd,"Fmsy 2021"=whbFwd2,"Status Quo"=whb),start=1990,end=2020))+
   scale_colour_manual("Scenario",values=c("red","blue","orange"))+
   theme_bw()+
   theme(legend.position="bottom"))
@@ -489,7 +492,7 @@ herFtar[is.na(herFtar)]=0.25
 herFwd=prj(her,herFtar)
 herFwd2=prj(her,herFtar%=%c(herFtar[,dim(herFtar)[2]]))
 
-proj[["her"]]=plot(window(FLStocks("Fmsy"=herFwd,"Fmsy 2"=herFwd2,"Status Quo"=her),start=1990))+
+proj[["her"]]=plot(window(FLStocks("Fmsy"=herFwd,"Fmsy 2021"=herFwd2,"Status Quo"=her),start=1990,end=2020))+
   scale_colour_manual("Scenario",values=c("red","blue","orange"))+
   theme_bw()+ 
   theme(legend.position="bottom")
@@ -503,14 +506,14 @@ macFtar[is.na(macFtar)]=0.22
 macFwd=prj(mac,macFtar) 
 macFwd2=prj(mac,macFtar%=%c(macFtar[,dim(macFtar)[2]]))
  
-proj[["mac"]]=plot(window(FLStocks("Fmsy"=macFwd,"Fmsy 2"=macFwd2,"Status Quo"=mac),start=1990))+
+proj[["mac"]]=plot(window(FLStocks("Fmsy"=macFwd,"Fmsy 2021"=macFwd2,"Status Quo"=mac),start=1990,end=2020))+
   scale_colour_manual("Scenario",values=c("red","blue","orange"))+
   theme_bw()+
   theme(legend.position="bottom")
 ```
 
 
-```{r, proj, fig.width=10,fig.height=6, cache=FALSE}
+```{r, proj, fig.width=10,fig.height=6}
 library(ggpubr)  
 ggarrange(proj[["whb"]]+theme_bw()+  
   theme(panel.grid.major =element_blank(),
@@ -544,6 +547,11 @@ save(her,herFtar,herErr,herCtc,herFmsy,herRefs,file=file.path(dropboxdir,"data/o
 save(mac,macFtar,macErr,macCtc,macFmsy,macRefs,file=file.path(dropboxdir,"data/om/macOM.RData")) 
 ```
 
+![](../tex/icesAR.jpeg)
+
+**Figure `r iFig=iFig+1; iFig`** ICES Advice Rule.
+
+
 ## Retrospective analyses
 
 ```{r, whb-retro}
@@ -565,7 +573,7 @@ retros[["mac"]]=plot(window(macRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar))
 ```
 
 
-```{r, retro, fig.width=10,fig.height=3, cache=FALSE}
+```{r, retro, fig.width=10,fig.height=3}
 library(ggpubr)  
 ggarrange(retros[["whb"]]+  
   theme(panel.grid.major =element_blank(),
@@ -662,27 +670,22 @@ stock.n(mac2)=stkn[,ac(1980:2021)]
 sn=x[[1]][[7]][names(x[[1]][[7]])=="logN"]
 ```
 
-
-```{r}
-print(getwd())
+```{r, runWhb, cache=FALSE}
+stk="whb"
+source("../run/runHcr.R") 
 ```
 
-```{r, runWhb}
-stk="whb" 
-source("../run/runHcr.R")
+```{r, runHer, cache=FALSE}
+stk="her" 
+source("../run/runHcr.R") 
 ```
 
-```{r, runHer}
-stk="her"  
-source("../run/runHcr.R")
+```{r, runMac, cache=FALSE}
+stk="mac"
+source("../run/runHcr.R") 
 ```
 
-```{r, runMac}
-stk="mac"  
-source("../run/runHcr.R")
-```
-
-```{r, smry}
+```{r, smry, cache=FALSE}
 source("../R/pm.R")
 
 library(FLCore)
@@ -854,6 +857,37 @@ ggarrange(p1+theme_bw()+
           nrow = 1,ncol=3,
           common.legend=TRUE,
           labels = c("WHB","HER","MAC"))
+```
+
+
+
+```{r, cache=FALSE}
+load(file.path(dropboxdir,paste("data/results/","smry",".RData",sep=""))) 
+
+lvls=c("ICES","Fmsy",
+       "HCR1",
+       "HCR1 +10%","HCR1 +20%","HCR1 +30%",
+       "HCR1 bnd","HCR1 +10% bnd","HCR1 +20% bnd","HCR1 +30% bnd",
+       "HCR1 bnd cap","HCR1 +10% bnd cap","HCR1 +20% bnd cap","HCR1 +30% bnd cap",
+       "HCR2",
+       "HCR2 +10%","HCR2 +20%","HCR2 +30%",
+       "HCR2 bnd","HCR2 +10% bnd","HCR2 +20% bnd","HCR2 +30% bnd",
+       "HCR2 bnd cap","HCR2 +10% bnd cap","HCR2 +20% bnd cap","HCR2 +30% bnd cap")
+                                     
+whbY=transform(whbY,.id=factor(.id,levels=lvls))
+cast(subset(transform(whbY,median=round(median/1000),0),qname=="catch"&year>2000&year<2022),.id~year,value="median")
+```
+
+
+```{r, cache=FALSE}
+herY=transform(herY,.id=factor(.id,levels=lvls))  
+cast(subset(transform(herY,median=round(median/1000),0),qname=="catch"&year>2000&year<2022),.id~year,value="median")
+```
+
+
+```{r, cache=FALSE}
+macY=transform(macY,.id=factor(.id,levels=lvls))
+cast(subset(transform(macY,median=round(median/1000),0),qname=="catch"&year>2000&year<2022),.id~year,value="median")
 ```
 
 # Funding

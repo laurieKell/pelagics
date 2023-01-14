@@ -27,7 +27,13 @@ stab<-function(x,u=0.2500,l=-0.2000){
   FLQuants("lower"=apply(as.FLQuant((round(aav,4)==l)),2,sum),
            "upper"=apply(as.FLQuant((round(aav,4)==u)),2,sum))}
 
-
+stab<-function(x){
+  # The number of years when the stability mechanism was applied
+  aav  =as.FLQuant(adply(x, c(1,3:6),  function(y) 
+    data.frame(year=names(y)[-length(y)],
+               data=(y[-1]-y[-length(y)])/y[-length(y)])))
+  aav}
+  
 pm<-function(x){
   
   list(

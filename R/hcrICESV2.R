@@ -96,13 +96,13 @@ setMethod('hcrICES', signature(object="FLStock",eql='FLBRP'),
               
               ##TAC Bounds, if stock below lower ref point then true and noi bound
               flag=c(ssb(mp)[,ac(stkYrs)]<c(FLPar(params)[bndWhen])[1])
+              rtn=res[[1]]
               
               if (bndCap<1){ ## if change > bndCap then no bound
                 ctcRatio=(catch(object)[,ac(refYrs)]%/%rtn)
                 flag=flag|(ctcRatio<(1-bndCap))|(ctcRatio>(1+bndCap))
                 }
               
-              rtn=res[[1]]
               rtn=qmax(rtn,catch(object)[,ac(refYrs)]*bndTac[1])
               rtn=qmin(rtn,catch(object)[,ac(refYrs)]*bndTac[2])
               
