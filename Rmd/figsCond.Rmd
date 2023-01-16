@@ -45,10 +45,12 @@ nits=100
 #remotes::install_github("flr/FLasher")
 #remotes::install_github('fishfollower/SAM/stockassessment', ref='components')
 #remotes::install_github("flr/FLSAM")
+#remotes::install_github("flr/kobe")
+#remotes::install_github("flr/FLfse") DOES NOT WORK!!
   
 library(FLCore) 
 library(ggplotFL)
-library(FLfse)
+#library(FLfse)
 library(FLBRP)
 library(FLasher)
 library(FLSAM)
@@ -68,7 +70,7 @@ library(magrittr)
 library(grid) 
 library(ggpubr)
 
-library(compositions)
+library(compositions) #install.packages("compositions")
 
 theme_set(theme_bw(16))
 ```
