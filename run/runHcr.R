@@ -9,7 +9,7 @@ require(magrittr)
 #require(rdrop2)
 #drop_auth()
 
-dropboxdir="~/Dropbox/pelagics"
+# dropboxdir="~/Dropbox/pelagics"
 
 #setwd("/home/laurie/Desktop/projects/pelagics/R")
 
@@ -21,7 +21,7 @@ stkid=c("whb.27.1-91214","mac.27.nea","her.27.3a47d")
 
 #stk     ="her"
 
-nits    =100
+# nits    =100
 start   =2001
 end     =2021
 interval=1

@@ -40,21 +40,21 @@ nits=100
 ```
 
 ```{r, pkgs}
-#install_github("flr/FLfse/FLfse")
 #install.packages("FLBRP", repos="http://flr-project.org/R")
 #remotes::install_github("flr/FLasher")
 #remotes::install_github('fishfollower/SAM/stockassessment', ref='components')
 #remotes::install_github("flr/FLSAM")
 #remotes::install_github("flr/kobe")
-#remotes::install_github("flr/FLfse") DOES NOT WORK!!
+#remotes::install_github("flr/FLfse/FLfse")
   
 library(FLCore) 
 library(ggplotFL)
-#library(FLfse)
+library(FLfse)
 library(FLBRP)
 library(FLasher)
 library(FLSAM)
 library(kobe)   #remotes::install_github("flr/kobe")
+library(mpb)    #remotes::install_github("lauriekell/mpb")
 
 library(rjson) # install.packages("rjson"); used for dropbox function
 library(RJSONIO)
