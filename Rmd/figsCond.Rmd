@@ -186,36 +186,32 @@ catch(mac)=computeCatch(mac,"all")
 save(mac,macR,file=file.path(dropboxdir, "data/om/mac.RData"))
 ```
 
+
+
 ```{r, retro-whb}
 load(file.path(dropboxdir, "data/inputs/WHB/run/retro.RData"))
-
 whbRet=FLStocks(llply(RETRO, SAM2FLStock))
-for (i in 1:length(whbRet)) name(whbRet[[i]]) <- "WHB"
-
 names(whbRet)=laply(whbRet, function(x) dims(x)$maxyear)
 save(whbRet,file=file.path(dropboxdir, "data/om/whbRet.RData"))
+
 ```
 
 ```{r, retro-her}
 load(file.path(dropboxdir, "data/inputs/HER/NSAS_HAWG2022_sf_retro.RData"))
 load(file.path(dropboxdir, "data/om/her.RData"))
-
 herRet=FLStocks(llply(NSH.retro, function(x) {
   res         =window(her,end=dims(x)$maxyear)
   stock.n(res)=stock.n(x)
   harvest(res)=harvest(x)
   res}))
-for (i in 1:length(herRet)) name(herRet[[i]]) <- "HER"
-
 names(herRet)=laply(herRet, function(x) dims(x)$maxyear)
 save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
+
 ```
 
 ```{r, retro-mac}
 load(file.path(dropboxdir, "data/inputs/MAC/retro.RData"))
 macRet=FLStocks(llply(ret,SAM2FLStock))
-for (i in 1:length(macRet)) name(macRet[[i]]) <- "MAC"
-
 names(macRet)=laply(macRet, function(x) dims(x)$maxyear)
 save(macRet,file=file.path(dropboxdir, "data/om/macRet.RData"))
 ```
@@ -435,12 +431,14 @@ retros=list("whb"=plot(window(whbRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar
 
 # retros[["whb"]]
 
-retros[["her"]]=plot(window(herRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
+retros[["her"]]=
+  plot(
+    window(herRet,start=1990),
+    metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec)
+  )+
   theme_bw()+ 
-  theme(legend.position="none") +
-  facet_grid(qname ~ stock)
+  theme(legend.position="none") 
 
-summary(plot(window(herRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec)))
 # retros[["her"]]
 
 retros[["mac"]]=plot(window(macRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
@@ -450,13 +448,13 @@ retros[["mac"]]=plot(window(macRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, 
 # retros[["mac"]]+facet_grid(.~qname)
 
 ggarrange(
-  retros[["whb"]]+  
+  retros[["whb"]]+
   theme(panel.grid.major =element_blank(),
         axis.ticks       =element_blank(),
         axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA))+
   expand_limits(y=0),
-          
+
   retros[["her"]]+
   theme(panel.grid.major =element_blank(),
         axis.ticks       =element_blank(),
@@ -472,8 +470,10 @@ ggarrange(
   expand_limits(y=0),
   
   nrow = 1,ncol=3,
-  common.legend=TRUE, legend="bottom",
-  labels = c("WHB","HER","MAC")) 
+  common.legend=TRUE, legend="none",
+  labels = c("WHB","HER","MAC"), 
+  label.x = rep(0.06,3),
+  label.y = rep(0.99,3)) 
 
 ```
 
@@ -482,38 +482,28 @@ ggarrange(
 
 ## Assessment Error
 
-```{r, whb-err, fig.height=8, fig.width=8}
-library(grid) 
+```{r, whb-err, fig.height=8, fig.width=8, warning=FALSE}
+# library(grid) 
+
+# CAN WE CONDENSE INTO THREE FIGURES ON A PAGE??
 
 dt=as.data.frame(rmvnorm(1000,c(1,1),cov(whbErr[-1,])))
-
 names(dt)=c("stock","harvest")
-kobePhaseMar(dt,quadcol=c("white","white","white","white"),
-  xlab="F",ylab="SSB")
-```
+kobePhaseMar(dt,quadcol=c("white","white","white","white"), xlab="F",ylab="SSB")
 
-**Figure `r iFig=iFig+1; iFig`a** Blue whiting: assessment error 
-
-
-```{r, her-err, fig.height=8, fig.width=8}
 dt=as.data.frame(rmvnorm(1000,c(1,1),cov(herErr[-1,])))
-
 names(dt)=c("stock","harvest")
-kobePhaseMar(dt,quadcol=c("white","white","white","white"),
-  xlab="F",ylab="SSB")
-```
+kobePhaseMar(dt,quadcol=c("white","white","white","white"), xlab="F",ylab="SSB")
 
-**Figure `r iFig=iFig; iFig`b** Herring: assessment error
-
-```{r, mac-err, fig.height=8, fig.width=8}
 dt=as.data.frame(rmvnorm(1000,c(1,1),cov(macErr[-1,])))
-
 names(dt)=c("stock","harvest")
-kobePhaseMar(dt,quadcol=c("white","white","white","white"),
-  xlab="F",ylab="SSB")
+kobePhaseMar(dt,quadcol=c("white","white","white","white"), xlab="F",ylab="SSB")
+
+# ggarrange stuff here
+
 ```
 
-**Figure `r iFig=iFig; iFig`c** Mackerel: assessment error
+**Figure `r iFig=iFig; iFig`c** Blue whiting, Herring and Mackerel: assessment error
 
 
 \newpage
@@ -893,14 +883,19 @@ load(file.path(dropboxdir,paste("data/runs/","whb",".RData",sep="")))
 whb=plot(window(FLStocks(llply(sims,function(x) x[[1]]))[c(1:6,9)],start=1991))
 whbY=ldply(sims, function(x) as.data.frame(pmYear(x[[1]]),drop=T))
 whbI=ldply(sims, function(x) model.frame(pmIter(x[[1]])))
+
+# whbC=plot(FLQuants(llply(sims[-1],function(x) catch(window(x[[1]],start=2000,end=2021)))))+
+#   geom_line(aes(year,data),data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),col="red")+facet_grid(qname~.)
 whbC=plot(FLQuants(llply(sims[-1],function(x) catch(window(x[[1]],start=2000,end=2021)))))+
-  geom_line(aes(year,data),data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),col="red")+facet_grid(qname~.)
+  geom_line(aes(year,data),data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),col="red")+facet_wrap(~qname)
+
 whbS=plot(FLQuants(llply(sims[-1],function(x) ssb(window(x[[1]],start=2000,end=2021)))))+
   geom_line(aes(year,data),data=as.data.frame(apply(ssb(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
   geom_line(aes(year,data),data=as.data.frame(refs$blim),col="red")+
   geom_line(aes(year,data),data=as.data.frame(refs$bpa), col="orange")+
   geom_line(aes(year,data),data=as.data.frame(refs$msybtrigger),col="blue")+
-  facet_grid(qname~.)
+  # facet_grid(qname~.)
+  facet_wrap(~qname)
 
 load(file.path(dropboxdir,paste("data/runs/","her",".RData",sep="")))
 her=plot(window(FLStocks(llply(sims,function(x) x[[1]]))[c(1:6,9)],start=1991))
@@ -929,6 +924,71 @@ macS=plot(FLQuants(llply(sims[-1],function(x) ssb(window(x[[1]],start=2000,end=2
   facet_grid(qname~.)
 
 save(whbY,whbI,herY,herI,macY,macI,file=file.path(dropboxdir,paste("data/results/","smry",".RData",sep="")))
+
+
+plot(
+  FLQuants(llply(sims[c(2,3,4)],function(x) catch(window(x[[1]],start=2000,end=2021)))))+
+  geom_line(data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),
+            aes(year,data), 
+            col="blue", size=1) +
+  expand_limits(y=0) +
+  facet_wrap()
+
+plot(
+  FLQuants(llply(sims[c("HCR1","HCR1 +10%", "HCR1 +20%", "HCR1 +30%")],
+                 function(x) catch(window(x[[1]],start=2000,end=2021)))))+
+  geom_line(data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),
+            aes(year,data), 
+            col="blue", size=1) +
+  expand_limits(y=0) 
+
+plot(
+  FLQuants(llply(sims[c("HCR1","HCR1 +10%", "HCR1 +20%", "HCR1 +30%")],
+                 function(x) catch(window(x[[1]],start=2000,end=2021)))))+
+  geom_line(data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),
+            aes(year,data), 
+            col="blue", size=1) +
+  expand_limits(y=0) 
+
+p1 <-
+  plot(
+  FLQuants(llply(sims[c("HCR1 bnd","HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")],
+                 function(x) catch(window(x[[1]],start=2000,end=2021)))))+
+  geom_line(data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),
+            aes(year,data), 
+            col="blue", size=1) +
+  expand_limits(y=0) 
+
+p2 <-
+  plot(
+  FLQuants(llply(sims[c("HCR1 bnd","HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")],
+                 function(x) ssb(window(x[[1]],start=2000,end=2021)))))+
+  geom_line(aes(year,data),
+            data=as.data.frame(apply(ssb(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),
+            linetype=2, col="blue", size=1)+
+  geom_line(aes(year,data),data=as.data.frame(refs$blim),col="red")+
+  geom_line(aes(year,data),data=as.data.frame(refs$bpa), col="orange")+
+  geom_line(aes(year,data),data=as.data.frame(refs$msybtrigger),col="blue")
+
+
+ggarrange(
+  p1 +
+  theme_bw()+
+  theme(panel.grid.major =element_blank(),  
+        axis.ticks       =element_blank(),
+        axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
+          
+  p2+theme_bw()+ 
+  theme(panel.grid.major =element_blank(),
+        axis.ticks       =element_blank(),
+        axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
+
+  nrow = 1,ncol=2,
+  common.legend=TRUE,
+  labels = c("Catch","SSB"))
+
 ```
 
 
