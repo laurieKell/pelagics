@@ -189,7 +189,8 @@ save(mac,macR,file=file.path(dropboxdir, "data/om/mac.RData"))
 ```{r, retro-whb}
 load(file.path(dropboxdir, "data/inputs/WHB/run/retro.RData"))
 
-whbRet=FLStocks(llply(RETRO, SAM2FLStock)) 
+whbRet=FLStocks(llply(RETRO, SAM2FLStock))
+for (i in 1:length(whbRet)) name(whbRet[[i]]) <- "WHB"
 
 save(whbRet,file=file.path(dropboxdir, "data/om/whbRet.RData"))
 ```
@@ -203,6 +204,7 @@ herRet=FLStocks(llply(NSH.retro, function(x) {
   stock.n(res)=stock.n(x)
   harvest(res)=harvest(x)
   res}))
+for (i in 1:length(herRet)) name(herRet[[i]]) <- "HER"
 
 save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
 ```
@@ -210,8 +212,10 @@ save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
 ```{r, retro-mac}
 load(file.path(dropboxdir, "data/inputs/MAC/retro.RData"))
 macRet=FLStocks(llply(ret,SAM2FLStock))
+for (i in 1:length(macRet)) name(macRet[[i]]) <- "MAC"
 
 save(macRet,file=file.path(dropboxdir, "data/om/macRet.RData"))
+
 ```
 
 
@@ -290,12 +294,15 @@ load(file.path(dropboxdir, "data/om/macErr.RData"))
 
 # Introduction
 
+Description of the issues
+
+Approach
 
 # Reference points
 
 Historical estimates of reference points. MSY at SSB refers to MSY Btrigger. 
 
-```{r, refs, fig.width=10,fig.height=6}
+```{r refs, fig.asp=0.6, warning=FALSE}
 refplots <- list()
 
 refplots[["f"]] <-
@@ -353,9 +360,9 @@ ggarrange(
 
 # Assessment
 
-Most recent assessments (2022) and historical estimates of reference points. 
+Most recent assessments (2022) relative to historical estimates of reference points. 
 
-```{r, assessment, fig.width=10,fig.height=12}
+```{r, assessment, warning=FALSE}
 
 assessment =list()
 
@@ -418,11 +425,112 @@ ggarrange(
 
 \newpage
 
-# Comparing ICES assessment, VPA reconstruction and forward prediction from VPA with observed catches
+## Retrospective analyses
 
-Note the difference in recruitment between ICES assessment and VPA reconstruction. This is due to the flexibility in SAM in deviating from the catch equation. 
+```{r, whb-retro, warning=FALSE, fig.asp=1.0}
+retros=list("whb"=plot(window(whbRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
+  theme_bw()+ 
+  theme(legend.position="none"))
 
-```{r, whb-fmsy}
+# retros[["whb"]]
+
+retros[["her"]]=plot(window(herRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
+  theme_bw()+ 
+  theme(legend.position="none") +
+  facet_grid(qname ~ stock)
+
+summary(plot(window(herRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec)))
+# retros[["her"]]
+
+retros[["mac"]]=plot(window(macRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
+  theme_bw()+ 
+  theme(legend.position="none")
+
+# retros[["mac"]]+facet_grid(.~qname)
+
+ggarrange(
+  retros[["whb"]]+  
+  theme(panel.grid.major =element_blank(),
+        axis.ticks       =element_blank(),
+        axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA))+
+  expand_limits(y=0),
+          
+  retros[["her"]]+
+  theme(panel.grid.major =element_blank(),
+        axis.ticks       =element_blank(),
+        axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)) +
+  expand_limits(y=0),
+          
+  retros[["mac"]]+
+  theme(panel.grid.major =element_blank(),
+        axis.ticks       =element_blank(),
+        axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA))+
+  expand_limits(y=0),
+  
+  nrow = 1,ncol=3,
+  common.legend=TRUE, legend="bottom",
+  labels = c("WHB","HER","MAC")) 
+
+```
+
+**Figure `r iFig=iFig+1; iFig`** Retrospective analysis for ICES assessments. 
+
+
+## Assessment Error
+
+```{r, whb-err, fig.height=8, fig.width=8}
+library(grid) 
+
+dt=as.data.frame(rmvnorm(1000,c(1,1),cov(whbErr[-1,])))
+
+names(dt)=c("stock","harvest")
+kobePhaseMar(dt,quadcol=c("white","white","white","white"),
+  xlab="F",ylab="SSB")
+```
+
+**Figure `r iFig=iFig+1; iFig`a** Blue whiting: assessment error 
+
+
+```{r, her-err, fig.height=8, fig.width=8}
+dt=as.data.frame(rmvnorm(1000,c(1,1),cov(herErr[-1,])))
+
+names(dt)=c("stock","harvest")
+kobePhaseMar(dt,quadcol=c("white","white","white","white"),
+  xlab="F",ylab="SSB")
+```
+
+**Figure `r iFig=iFig; iFig`b** Herring: assessment error
+
+```{r, mac-err, fig.height=8, fig.width=8}
+dt=as.data.frame(rmvnorm(1000,c(1,1),cov(macErr[-1,])))
+
+names(dt)=c("stock","harvest")
+kobePhaseMar(dt,quadcol=c("white","white","white","white"),
+  xlab="F",ylab="SSB")
+```
+
+**Figure `r iFig=iFig; iFig`c** Mackerel: assessment error
+
+
+\newpage
+
+## Harvest control rules
+
+
+\newpage
+
+# Blue whiting
+
+## Comparing ICES assessment, VPA reconstruction and forward prediction from VPA with observed catches
+
+Note the difference in F and SSB between ICES assessment and VPA reconstruction. 
+
+[ WHY IS THERE NO DIFFERENCE IN RECRUITMENT FOR BLUE WHITING ?? ]
+
+```{r, whb-fmsy, warning=FALSE, fig.asp=1.0}
 load(file.path(dropboxdir, "data/inputs/WHB/run/model.RData"))
 load(file.path(dropboxdir, "data/om/whb.RData"))
 
@@ -455,10 +563,47 @@ pwhb$data %>%
   labs(title = "whb") +
   facet_grid(qname~stock, scales="free_y") 
 
+# plot overlay
+pwhb
 
 ```
 
-```{r, her-fmsy}
+## Projections based on ICES assessment
+
+```{r, whbProj, warning=FALSE, fig.asp=1.0}
+whbFtar=as.FLQuant(subset(refs,spp=="Blue whiting"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
+whbFtar[is.na(whbFtar)]=0.18
+
+# forward projection using historical Ftarget=Fmsy
+whbFwd =prj(whb,whbFtar)
+
+# forward projection using  most recent Fmsy
+whbFwd2=prj(whb,whbFtar%=% c(whbFtar[,dim(whbFtar)[2]]))
+
+proj=list(
+  "whb"=plot(window(FLStocks("Fmsy"=whbFwd,
+                             "Fmsy 2021"=whbFwd2,
+                             "ICES"=whb),
+                    start=1990,end=2020))+
+  scale_colour_manual("Scenario",values=c("red","blue","black"))+
+  theme_bw()+
+  theme(legend.position="bottom"))
+
+proj[["whb"]]
+
+```
+
+
+
+
+
+# North Sea herring
+
+## Comparing ICES assessment, VPA reconstruction and forward prediction from VPA with observed catches
+
+Note the difference in F and SSB between ICES assessment and VPA reconstruction. 
+
+```{r, her-fmsy, warning=FALSE, fig.asp=1.0}
 load(file.path(dropboxdir, "data/inputs/HER/NSAS_HAWG2022_sf_replicates.RData"))
 load(file.path(dropboxdir, "data/om/her.RData"))
 
@@ -476,13 +621,8 @@ herCtc =fwd(her,catch=catch(her)[,ac(2001:2021)],sr=rec(vpa)%*%(recs%/%apply(rec
 herFmsy=fwd(her,f=    herFtar, sr=rec(vpa)%*%(recs%/%apply(recs,2,median))[,-76])
 pher=plot(window(FLStocks("ICES"=her,
                           "VPA"=vpa,
-                          #"ICES-f"  =fwd(her,f=    fbar( her)[,ac(2001:2021)],sr=recs),
-                          #"Fmsy"    =herFmsy,
                           "VPA+Reported catch"=herCtc),
           1995))+
-   # geom_line(aes(year,data,col=stock),
-   #           data=transform(subset(refs,spp=="Herring"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
-   # scale_color_manual(values=c("red","blue","green","orange","pink","purple","grey"))+
    scale_x_continuous(breaks=c(2001,2011,2021))
 
 pher$data$qname=factor(pher$data$qname,levels=c("Rec","F","Catch","SSB"))
@@ -495,9 +635,44 @@ pher$data %>%
   labs(title = "her") +
   facet_grid(qname~stock, scales="free_y") 
 
+pher
+
+```
+## Projections
+
+```{r, herProj, warning=FALSE, fig.asp=1.0}
+
+herFtar=as.FLQuant(subset(refs,spp=="Herring"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
+herFtar[is.na(herFtar)]=0.25
+
+herFwd=prj(her,herFtar)
+herFwd2=prj(her,herFtar%=%c(herFtar[,dim(herFtar)[2]]))
+
+proj[["her"]]=plot(window(FLStocks("Fmsy"=herFwd,
+                                   "Fmsy 2021"=herFwd2,
+                                   "ICES"=her),
+                          start=1990,end=2020))+
+  scale_colour_manual("Scenario",values=c("red","blue","black"))+
+  theme_bw()+ 
+  theme(legend.position="bottom")
+
+proj[["her"]]
+
 ```
 
-```{r, mac-fmsy}
+
+
+
+
+
+# Northeast Atlantic Mackerel
+
+## Comparing ICES assessment, VPA reconstruction and forward prediction from VPA with observed catches
+
+Note strong difference in recruitment between ICES assessment and VPA based assessments.
+
+```{r, mac-fmsy, warning=FALSE, fig.asp=1.0}
+
 load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
 load(file.path(dropboxdir, "data/om/mac.RData"))
 
@@ -539,10 +714,44 @@ pmac$data %>%
   labs(title = "mac") +
   facet_grid(qname~stock, scales="free_y") 
 
+pmac
+
+```
+
+## Projections
+
+```{r, macProj, warning=FALSE, fig.asp=1.0}
+
+macFtar=as.FLQuant(subset(refs,spp=="Mackerel"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
+macFtar[is.na(macFtar)]=0.22
+
+macFwd=prj(mac,macFtar) 
+macFwd2=prj(mac,macFtar%=%c(macFtar[,dim(macFtar)[2]]))
+ 
+proj[["mac"]]=plot(window(FLStocks("Fmsy"=macFwd,
+                                   "Fmsy 2021"=macFwd2,
+                                   "ICES"=mac),
+                          start=1990,end=2020))+
+  scale_colour_manual("Scenario",values=c("red","blue","black"))+
+  theme_bw()+
+  theme(legend.position="bottom")
+
+proj[["mac"]]
+
 ```
 
 
-```{r, hind, fig.width=10,fig.height=6}
+
+
+
+
+
+
+# Comparisons between stocks
+
+## Comparing ICES assessment, VPA reconstruction and forward prediction from VPA with observed catches
+
+```{r, hind, fig.asp=1.0, warning=FALSE}
 library(ggpubr)
 ggarrange(pwhb+theme_bw()+  
   theme(panel.grid.major =element_blank(),
@@ -570,50 +779,8 @@ ggarrange(pwhb+theme_bw()+
 
 ## Projections
 
-```{r, whbProj}
-whbFtar=as.FLQuant(subset(refs,spp=="Blue whiting"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
-whbFtar[is.na(whbFtar)]=0.18
-
-whbFwd =prj(whb,whbFtar)
-whbFwd2=prj(whb,whbFtar%=%c(whbFtar[,dim(whbFtar)[2]]))
-
-proj=list("whb"=plot(window(FLStocks("Fmsy"=whbFwd,"Fmsy 2021"=whbFwd2,"Status Quo"=whb),start=1990,end=2020))+
-  scale_colour_manual("Scenario",values=c("red","blue","orange"))+
-  theme_bw()+
-  theme(legend.position="bottom"))
-```
-
-
-```{r, herProj}
-herFtar=as.FLQuant(subset(refs,spp=="Herring"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
-herFtar[is.na(herFtar)]=0.25
-
-herFwd=prj(her,herFtar)
-herFwd2=prj(her,herFtar%=%c(herFtar[,dim(herFtar)[2]]))
-
-proj[["her"]]=plot(window(FLStocks("Fmsy"=herFwd,"Fmsy 2021"=herFwd2,"Status Quo"=her),start=1990,end=2020))+
-  scale_colour_manual("Scenario",values=c("red","blue","orange"))+
-  theme_bw()+ 
-  theme(legend.position="bottom")
-```
-
-
-```{r, macProj}
-macFtar=as.FLQuant(subset(refs,spp=="Mackerel"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
-macFtar[is.na(macFtar)]=0.22
-
-macFwd=prj(mac,macFtar) 
-macFwd2=prj(mac,macFtar%=%c(macFtar[,dim(macFtar)[2]]))
- 
-proj[["mac"]]=plot(window(FLStocks("Fmsy"=macFwd,"Fmsy 2021"=macFwd2,"Status Quo"=mac),start=1990,end=2020))+
-  scale_colour_manual("Scenario",values=c("red","blue","orange"))+
-  theme_bw()+
-  theme(legend.position="bottom")
-```
-
-
-```{r, proj, fig.width=10,fig.height=6}
-library(ggpubr)  
+```{r, proj, fig.asp=1.0,warning=FALSE}
+# library(ggpubr)  
 ggarrange(proj[["whb"]]+theme_bw()+  
   theme(panel.grid.major =element_blank(),
         axis.ticks       =element_blank(),
@@ -630,107 +797,31 @@ ggarrange(proj[["whb"]]+theme_bw()+
         axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA)), 
           nrow = 1,ncol=3,
-          common.legend=TRUE,
+          common.legend=TRUE, legend="bottom",
           labels = c("WHB","HER","MAC")) 
+
 ```
 
 **Figure `r iFig=iFig+1; iFig`** Comparison of reported catch and $F_{MSY}$ projections at $F_{MSY}$. 
 
+
 ```{r}
+
 whbRefs=FLQuants(dlply(subset(refs,spp=="Blue whiting"),.(ref), with, as.FLQuant(data.frame(year=year,data=data))))
+
 herRefs=FLQuants(dlply(subset(refs,spp=="Herring"),     .(ref), with, as.FLQuant(data.frame(year=year,data=data))))
+
 macRefs=FLQuants(dlply(subset(refs,spp=="Mackerel"),    .(ref), with, as.FLQuant(data.frame(year=year,data=data))))
 
 save(whb,whbFtar,whbErr,whbCtc,whbFmsy,whbRefs,file=file.path(dropboxdir,"data/om/whbOM.RData"))
 save(her,herFtar,herErr,herCtc,herFmsy,herRefs,file=file.path(dropboxdir,"data/om/herOM.RData"))
 save(mac,macFtar,macErr,macCtc,macFmsy,macRefs,file=file.path(dropboxdir,"data/om/macOM.RData")) 
-```
 
-![](../tex/icesAR.jpeg)
+```
 
 **Figure `r iFig=iFig+1; iFig`** ICES Advice Rule.
 
 
-## Retrospective analyses
-
-```{r, whb-retro}
-retros=list("whb"=plot(window(whbRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar))+
-  theme_bw()+ 
-  theme(legend.position="none"))
-```
-
-```{r, her-retro}
-retros[["her"]]=plot(window(herRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar))+
-  theme_bw()+ 
-  theme(legend.position="none")
-```
-
-```{r, mac-retro}
-retros[["mac"]]=plot(window(macRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar))+
-  theme_bw()+ 
-  theme(legend.position="none")
-```
-
-
-```{r, retro, fig.width=10,fig.height=3}
-library(ggpubr)  
-ggarrange(retros[["whb"]]+  
-  theme(panel.grid.major =element_blank(),
-        axis.ticks       =element_blank(),
-        axis.text.y      =element_blank(),
-        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
-          retros[["her"]]+
-  theme(panel.grid.major =element_blank(),
-        axis.ticks       =element_blank(),
-        axis.text.y      =element_blank(),
-        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
-          retros[["mac"]]+
-  theme(panel.grid.major =element_blank(),
-        axis.ticks       =element_blank(),
-        axis.text.y      =element_blank(),
-        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)), 
-          nrow = 1,ncol=3,
-          common.legend=TRUE,
-          labels = c("WHB","HER","MAC")) 
-```
-
-**Figure `r iFig=iFig+1; iFig`** Retrospective analysis for ICES assessments. 
-
-
-## Assessment Error
-
-```{r, whb-err, fig.height=8, fig.width=8}
-library(grid) 
-
-dt=as.data.frame(rmvnorm(1000,c(1,1),cov(whbErr[-1,])))
-
-names(dt)=c("stock","harvest")
-kobePhaseMar(dt,quadcol=c("white","white","white","white"),
-  xlab="F",ylab="SSB")
-```
-
-**Figure `r iFig=iFig+1; iFig`a** Blue whiting: assessment error 
-
-
-```{r, her-err, fig.height=8, fig.width=8}
-dt=as.data.frame(rmvnorm(1000,c(1,1),cov(herErr[-1,])))
-
-names(dt)=c("stock","harvest")
-kobePhaseMar(dt,quadcol=c("white","white","white","white"),
-  xlab="F",ylab="SSB")
-```
-
-**Figure `r iFig=iFig; iFig`b** Herring: assessment error
-
-```{r, mac-err, fig.height=8, fig.width=8}
-dt=as.data.frame(rmvnorm(1000,c(1,1),cov(macErr[-1,])))
-
-names(dt)=c("stock","harvest")
-kobePhaseMar(dt,quadcol=c("white","white","white","white"),
-  xlab="F",ylab="SSB")
-```
-
-**Figure `r iFig=iFig; iFig`c** Mackerel: assessment error
 
 ```{r, eval=F}
 load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
