@@ -1,60 +1,66 @@
 ---
-title: "**Pelagics**"
-subtitle: "Operating Model Conditioning"
-author: "L Kell"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: html_document
+# title: "**Pelagics**"
+# subtitle: "Operating Model Conditioning"
+# author: "L Kell"
+# date: "`r format(Sys.time(), '%d %B, %Y')`"
+# output: html_document
+output:
+  word_document:
+    reference_docx: ../report_template.dotx
 mathjax: TRUE
-fig_width: 6 
-fig_height: 4 
-tags: FLR FLCore introduction
-license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+# fig_width: 6 
+# fig_height: 4 
+# tags: FLR FLCore introduction
+# license: Creative Commons Attribution-ShareAlike 4.0 International Public License
 # bibliography: refs.bib
 ---
 
 
 ```{r, knitr, eval=TRUE, echo=FALSE, warning=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-# getwd()
 library(knitr)
 
-opts_chunk$set(cache     =TRUE, 
-               comment   =NA, 
+knitr::opts_chunk$set(
+               cache     =TRUE, 
+               comment   ="", 
                warning   =FALSE, 
                message   =FALSE, 
                error     =FALSE, 
                echo      =FALSE, 
-               eval      =TRUE,cache   =TRUE,
+               eval      =TRUE,
+               crop      =TRUE,
                cache.path="../cache/figs/cond/",
                fig.path  ="../tex/figs",
-               fig.width =8,
-               fig.height=6,
+               fig.width =10,
+               fig.height=8,
                dev       ="png")
 
-iFig=1
+iFig=0
 iTab=0
+nits=100
+
 ```
 
-```{r}
-nits=100
-```
 
 ```{r, pkgs}
-#install.packages("FLBRP", repos="http://flr-project.org/R")
-#remotes::install_github("flr/FLasher")
-#remotes::install_github('fishfollower/SAM/stockassessment', ref='components')
-#remotes::install_github("flr/FLSAM")
-#remotes::install_github("flr/kobe")
-#remotes::install_github("flr/FLfse/FLfse")
-  
+# install.packages("FLBRP", repos="http://flr-project.org/R")
+# install.packages("FLasher", repos="http://flr-project.org/R")
+# install.packages("FLAssess", repos="http://flr-project.org/R")
+# remotes::install_github('fishfollower/SAM/stockassessment', ref='components')
+# remotes::install_github("flr/FLSAM")
+# remotes::install_github("flr/kobe")
+# remotes::install_github("flr/FLfse/FLfse")
+# remotes::install_github("lauriekell/mpb")
+# install.packages("compositions")
+
 library(FLCore) 
 library(ggplotFL)
 library(FLfse)
 library(FLBRP)
 library(FLasher)
+library(FLAssess)
 library(FLSAM)
-library(kobe)   #remotes::install_github("flr/kobe")
-library(mpb)    #remotes::install_github("lauriekell/mpb")
+library(kobe)   
+library(mpb)    
 
 library(rjson) # install.packages("rjson"); used for dropbox function
 library(RJSONIO)
@@ -66,11 +72,13 @@ library(plyr)
 library(dplyr)
 library(reshape)
 library(magrittr)
+library(ggpubr)
   
 library(grid) 
 library(ggpubr)
 
-library(compositions) #install.packages("compositions")
+library(compositions) 
+
 
 theme_set(theme_bw(16))
 ```
@@ -79,6 +87,8 @@ theme_set(theme_bw(16))
 source('../R/kobe-phaseMar.R')
 source('../R/kobe-phase.R')
 source('../R/get_dropbox.r')
+source("../R/pm.R")
+
 ```
 
 
@@ -91,9 +101,15 @@ if ("try-error"%in%is(dropboxdir))
 
 
 ```{r, source2}
-prj<-function(x,ftar,
-              yrs=dimnames(x)$year[dim(m(x))[2]-31:0],nit=nits){
-  f0=array(c(rep(c(1,rep(0,dim(x)[1])),dim(x)[1]-1),1),c(dim(harvest(x))[1],dim(harvest(x))[1]),
+
+# Projection function
+
+prj<-function(x,
+              ftar,
+              yrs=dimnames(x)$year[dim(m(x))[2]-31:0],
+              nit=nits){
+  f0=array(c(rep(c(1,rep(0,dim(x)[1])),dim(x)[1]-1),1),
+           c(dim(harvest(x))[1],dim(harvest(x))[1]),
            dimnames=list(dims(x)$min:dims(x)$max,dims(x)$min:dims(x)$max))
   f0=f0*0.05
   F0=aperm(maply(data.frame(year=yrs), function(year) rlnorm.rplus(nits,rep(0,dim(x)[1]),f0)),c(3,1,2)) 
@@ -106,17 +122,31 @@ prj<-function(x,ftar,
   control=as(FLQuants("f"=ftar),"fwdControl")
   
   res=fwd(x,sr=rec(x),control=control)
-  res}
+  res
+}
 
-load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
+# load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
 
 sam2FLQuant<-function(x,row=1){
-  FLQuants(ssb     =FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logssb"],   dimnames=list(year=x[["data"]][["years"]])),
-           fbar    =FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logfbar"],  dimnames=list(year=x[["data"]][["years"]])),
-           catch   =FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logCatch"], dimnames=list(year=x[["data"]][["years"]])),
-           landings=FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logLand"],  dimnames=list(year=x[["data"]][["years"]])),
-           rec     =FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logR"],     dimnames=list(year=x[["data"]][["years"]])),
-           biomass =FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logtsb"],   dimnames=list(year=x[["data"]][["years"]])))}
+  FLQuants(ssb     =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logssb"], 
+                     dimnames=list(year=x[["data"]][["years"]])),
+           fbar    =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logfbar"],  
+                     dimnames=list(year=x[["data"]][["years"]])),
+           catch   =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logCatch"], 
+                     dimnames=list(year=x[["data"]][["years"]])),
+           landings=
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logLand"],  
+                     dimnames=list(year=x[["data"]][["years"]])),
+           rec     =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logR"],     
+                     dimnames=list(year=x[["data"]][["years"]])),
+           biomass =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logtsb"],   
+                     dimnames=list(year=x[["data"]][["years"]])))}
+
 ```
 
 ```{r, assessment-whb}
@@ -196,6 +226,7 @@ whbErr=laply(whbRet, function(x){
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
 save(whbErr,file=file.path(dropboxdir, "data/om/whbErr.RData"))
+
 ```
 
 ```{r, herErr}
@@ -245,118 +276,157 @@ load(file.path(dropboxdir, "data/om/macRet.RData"))
 load(file.path(dropboxdir, "data/om/whbErr.RData"))
 load(file.path(dropboxdir, "data/om/herErr.RData"))
 load(file.path(dropboxdir, "data/om/macErr.RData"))
+
 ```
 
+# Hindcast analysis of pelagic stocks
 
-```{r, whb}
-assessment=list(whb=plot(whb)+  
-  geom_line(aes(year,data,col=stock),
-            data=transform(subset(refs,spp=="Blue whiting"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
-  #scale_color_manual(values=c("red","blue"))+
+## Blue whiting, North Sea herring and Northeast Atlantic mackerel
+
+**L. Kell, M.A. Pastoors
+
+`r format(Sys.time(), '%d/%m/%Y')`
+
+
+# Introduction
+
+
+# Reference points
+
+Historical estimates of reference points. MSY at SSB refers to MSY Btrigger. 
+
+```{r, refs, fig.width=10,fig.height=6}
+refplots <- list()
+
+refplots[["f"]] <-
+  refs %>% 
+  filter(ref %in% c("fpa", "fmsy", "flim")) %>%
+  mutate(ref = gsub("f","", ref)) %>% 
+  mutate(ref = factor(ref, levels=c("lim","pa", "msy"))) %>% 
+  dplyr::rename(variable = qname) %>% 
+  
+  ggplot()+
+  geom_line( aes(year,as.numeric(data),colour=ref))+
+  geom_point(aes(year,as.numeric(data),colour=ref))+
+  labs(x="", y="") +
+  expand_limits(y=0) +
+  facet_grid(spp~variable,scale="free")
+
+refplots[["ssb"]] <-
+  refs %>% 
+  filter(ref %in% c("blim","bpa","msybtrigger")) %>% 
+  mutate(ref = gsub("^b","", ref)) %>% 
+  mutate(ref = gsub("btrigger","", ref)) %>% 
+  mutate(ref = factor(ref, levels=c("lim","pa", "msy"))) %>% 
+  dplyr::rename(variable = qname) %>% 
+  
+  ggplot()+
+  geom_line( aes(year,as.numeric(data),colour=ref))+
+  geom_point(aes(year,as.numeric(data),colour=ref))+
+  labs(x="", y="") +
+  expand_limits(y=0) +
+  facet_grid(spp~variable,scale="free")
+
+ggarrange(
+  refplots[["ssb"]]+theme_bw()+
+  theme(panel.grid.major =element_blank(),
+        strip.background.y = element_blank(), strip.text.y = element_blank(),
+        # axis.ticks       =element_blank(),
+        # axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
+          
+  refplots[["f"]]+theme_bw()+
+  theme(panel.grid.major =element_blank(),
+        # axis.ticks       =element_blank(),
+        # axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)), 
+          
+  nrow = 1,ncol=2,
+  common.legend=TRUE, legend = "bottom")
+
+
+```
+
+**Figure `r iFig=iFig+1; iFig`** ICES SSB and Fishing Mortality reference points, as estimated at each benchmark assessment.
+
+\newpage
+
+# Assessment
+
+Most recent assessments (2022) and historical estimates of reference points. 
+
+```{r, assessment, fig.width=10,fig.height=12}
+
+assessment =list()
+
+assessment[["whb"]] <-
+  ggplotFL::plot(window(whb, 1990))+  
+  
+  geom_line(data = filter(refs, 
+                          spp=="Blue whiting" & 
+                          ref %in%c("blim","bpa","msybtrigger", "fmsy", "fpa")),
+            aes(year, data, col=ref)) +
   theme(legend.position="bottom")+
-  scale_color_manual("Reference\nPoints",values=rainbow(7)))
-```
+  scale_color_manual("Reference\nPoints",values=rainbow(7))
 
-
-```{r, her}
-assessment[["her"]]=plot(her)+  
-  geom_line(aes(year,data,col=stock),
-            data=transform(subset(refs,spp=="Herring"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
+assessment[["her"]] <-
+  plot(window(her, 1990))+  
+  geom_line(data = filter(refs, 
+                          spp=="Herring" & 
+                          ref %in%c("blim","bpa","msybtrigger", "fmsy", "fpa")),
+            aes(year, data, col=ref)) +
   #scale_color_manual(values=c("red","blue"))+
   theme(legend.position="bottom")+
   scale_color_manual("Reference\nPoints",values=rainbow(7))
-```
 
-
-```{r, mac}
-assessment[["mac"]]=plot(mac)+  
-  geom_line(aes(year,data,col=stock),
-            data=transform(subset(refs,spp=="Mackerel"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
+assessment[["mac"]] <- 
+  plot(window(mac, 1990))+  
+  geom_line(data = filter(refs, 
+                          spp=="Mackerel" & 
+                          ref %in%c("blim","bpa","msybtrigger", "fmsy", "fpa")),
+            aes(year, data, col=ref)) +
   #scale_color_manual(values=c("red","blue"))+
   theme(legend.position="bottom")+
   scale_color_manual("Reference\nPoints",values=rainbow(7))
-```
 
+# plot together
 
-```{r, assessment, fig.width=12,fig.height=6}
-library(ggpubr)
-ggarrange(assessment[["whb"]]+theme_bw()+
+ggarrange(
+  assessment[["whb"]]+theme_bw()+
   theme(panel.grid.major =element_blank(),
         axis.ticks       =element_blank(),
         axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
-          assessment[["her"]]+theme_bw()+
+          
+  assessment[["her"]]+theme_bw()+
   theme(panel.grid.major =element_blank(),
         axis.ticks       =element_blank(),
         axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
-          assessment[["mac"]]+theme_bw()+
+          
+  assessment[["mac"]]+theme_bw()+
   theme(panel.grid.major =element_blank(),
         axis.ticks       =element_blank(),
         axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA)), 
           nrow = 1,ncol=3,
-          common.legend=TRUE,
+          common.legend=TRUE, legend = "bottom",
           labels = c("WHB","HER","MAC"))
 ```
 
-**Figure `r iFig=iFig+1; iFig`** Most recent ICES assessments
+**Figure `r iFig=iFig+1; iFig`** Most recent ICES assessments with F and SSB reference points
 
+\newpage
 
-```{r, frefs, fig.width=10,fig.height=6}
-ref2=read.csv(file.path(dropboxdir,"data/inputs/refs.csv"),header=T)
+# Comparing ICES assessment, VPA reconstruction and forward prediction from VPA with observed catches
 
-fref=ggplot(melt(ref2[,c("spp","assessmentyear","flim","fpa","fmsy")],id.vars=c("spp","assessmentyear")))+
-  geom_line( aes(assessmentyear,as.numeric(value),colour=variable))+
-  geom_point(aes(assessmentyear,as.numeric(value),colour=variable))+
-  facet_grid(spp~.,scale="free")+
-  xlab("Year")+ylab("F")
-
-fref
-```
-
-**Figure `r iFig=iFig+1; iFig`a** ICES Fishing Mortality reference points, as estimated at each benchmark assessment.
-
-```{r, brefs, fig.width=10,fig.height=6}
-bref=ggplot(melt(ref2[,c("spp","assessmentyear","blim","bpa","msybtrigger")],id.vars=c("spp","assessmentyear")))+
-  geom_line( aes(assessmentyear,as.numeric(value)/1000,colour=variable))+
-  geom_point(aes(assessmentyear,as.numeric(value)/1000,colour=variable))+
-  facet_grid(spp~.,scale="free")+
-  xlab("Year")+ylab("SSB (tn)")
-
-bref
-```
-
-**Figure `r iFig=iFig; iFig`b** ICES Spawning Stock Biomass reference points, as estimated at each benchmark assessment.
-
-```{r, refs, fig.width=12,fig.height=6}
-p=ggarrange(fref+theme_bw()+ 
-  theme(panel.grid.major =element_blank(),
-        axis.ticks       =element_blank(),
-        axis.text.y      =element_blank(),
-        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
-          bref+theme_bw()+
-  theme(panel.grid.major =element_blank(),
-        axis.ticks       =element_blank(),
-        axis.text.y      =element_blank(),
-        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)), 
-          nrow = 1,ncol=2,
-          common.legend=TRUE)
-```
-
-
-```{r,eval=FALSE}
-geom_polygon(aes(x,y,fill=f),data=quad,alpha=0.2)+
-  geom_vline(aes(xintercept=x),data=data.frame(y="2FMSY",x=c( 90,105)),col="red")+
-  geom_vline(aes(xintercept=x),data=data.frame(y="2FMSY",x=c( 80,110)),col="orange")+
-  scale_fill_manual(values=c("orange","orange","green","green","red","blue"))
-```
-
+Note the difference in recruitment between ICES assessment and VPA reconstruction. This is due to the flexibility in SAM in deviating from the catch equation. 
 
 ```{r, whb-fmsy}
 load(file.path(dropboxdir, "data/inputs/WHB/run/model.RData"))
+load(file.path(dropboxdir, "data/om/whb.RData"))
 
-vpa=whb+FLAssess:::VPA(whb)
+vpa = whb + FLAssess:::VPA(whb)
 
 whbFtar=as.FLQuant(subset(refs,spp=="Blue whiting"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
 whbFtar[is.na(whbFtar)]=0.22
@@ -367,26 +437,34 @@ stock.n(vpa)=rlnorm(nits,log(stock.n(whb)),sd[1:10,ac(1981:2022)])
 
 whb    =propagate(whb,nits)
 whbCtc =fwd(whb,catch=catch(whb)[,ac(2001:2021)],sr=rec(vpa))
-whbFmsy=fwd(whb,f=    whbFtar,                   sr=rec(vpa))
+whbFmsy=fwd(whb,f=whbFtar,                       sr=rec(vpa))
+
 pwhb=plot(window(FLStocks("ICES"=whb,
                           "VPA"=vpa,
-                          #"ICES-f"  =fwd(whb,f=    fbar( whb)[,ac(2001:2021)],sr=rec(vpa)),
-                          #"Fmsy"    =whbFmsy
-                          "Reported catch"=whbCtc),
-          1995))+
-   # geom_line(aes(year,data,col=stock),
-   #          data=transform(subset(refs,spp=="Blue whiting"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
-   # scale_color_manual(values=c("red","blue","green","orange","pink","purple"))+
+                          "VPA+Reported catch"=whbCtc),
+          1990))+
    scale_x_continuous(breaks=c(2001,2011,2021))
 
 pwhb$data$qname=factor(pwhb$data$qname,levels=c("Rec","F","Catch","SSB"))
+
+# plot comparing the three scenarios
+pwhb$data %>% 
+  ggplot(aes(x=year, y=data, group=iter)) +
+  theme_bw() +
+  geom_line() +
+  labs(title = "whb") +
+  facet_grid(qname~stock, scales="free_y") 
+
+
 ```
 
 ```{r, her-fmsy}
+load(file.path(dropboxdir, "data/inputs/HER/NSAS_HAWG2022_sf_replicates.RData"))
+load(file.path(dropboxdir, "data/om/her.RData"))
+
 herFtar=as.FLQuant(subset(refs,spp=="Herring"&ref=="fmsy"&year>=2001)[,c("year","data")])[,-22]
 herFtar[is.na(herFtar)]=0.25
 
-load(file.path(dropboxdir, "data/inputs/HER/NSAS_HAWG2022_sf_replicates.RData"))
 res=melt(laply(NSH.sim,stock.n))
 names(res)=c("iter","age","year","data")
 recs=as.FLQuant(res)[1,,,,,1:nits]
@@ -400,7 +478,7 @@ pher=plot(window(FLStocks("ICES"=her,
                           "VPA"=vpa,
                           #"ICES-f"  =fwd(her,f=    fbar( her)[,ac(2001:2021)],sr=recs),
                           #"Fmsy"    =herFmsy,
-                          "Reported catch"=herCtc),
+                          "VPA+Reported catch"=herCtc),
           1995))+
    # geom_line(aes(year,data,col=stock),
    #           data=transform(subset(refs,spp=="Herring"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
@@ -408,10 +486,20 @@ pher=plot(window(FLStocks("ICES"=her,
    scale_x_continuous(breaks=c(2001,2011,2021))
 
 pher$data$qname=factor(pher$data$qname,levels=c("Rec","F","Catch","SSB"))
+
+# plot comparing the three scenarios
+pher$data %>% 
+  ggplot(aes(x=year, y=data, group=iter)) +
+  theme_bw() +
+  geom_line() +
+  labs(title = "her") +
+  facet_grid(qname~stock, scales="free_y") 
+
 ```
 
 ```{r, mac-fmsy}
 load(file.path(dropboxdir, "data/inputs/MAC/model fit.RData"))
+load(file.path(dropboxdir, "data/om/mac.RData"))
 
 x=fit.new 
 snVar=FLQuant(x[["sdrep"]][["diag.cov.random"]][names(x[["sdrep"]][[7]])=="logN"],dimnames=list(age=0:12,year=1980:2022))^0.5
@@ -432,7 +520,7 @@ pmac=plot(window(FLStocks("ICES"=mac,
                           "VPA"=vpa,
                           #"ICES-f"  =fwd(mac,f=    fbar( mac)[,ac(2001:2021)],sr=rec(vpa)),
                           #"Fmsy"    =macFmsy,
-                          "Reported catch"=macCtc),
+                          "VPA+Reported catch"=macCtc),
           1995))+
    # geom_line(aes(year,data,col=stock),
    #          data=transform(subset(refs,spp=="Mackerel"&ref%in%c("blim","bpa","msybtrigger")),stock=ref))+
@@ -442,12 +530,21 @@ pmac=plot(window(FLStocks("ICES"=mac,
 pmac$data$qname=factor(pmac$data$qname,levels=c("Rec","F","Catch","SSB"))
 
 mac=fwd(propagate(mac,nits),catch=catch(mac)[,ac(2001:2021)],sr=rec(vpa))
+
+# plot comparing the three scenarios
+pmac$data %>% 
+  ggplot(aes(x=year, y=data, group=iter)) +
+  theme_bw() +
+  geom_line() +
+  labs(title = "mac") +
+  facet_grid(qname~stock, scales="free_y") 
+
 ```
 
 
 ```{r, hind, fig.width=10,fig.height=6}
 library(ggpubr)
-p=ggarrange(pwhb+theme_bw()+  
+ggarrange(pwhb+theme_bw()+  
   theme(panel.grid.major =element_blank(),
         axis.ticks       =element_blank(),
         axis.text.y      =element_blank(),
@@ -463,12 +560,12 @@ p=ggarrange(pwhb+theme_bw()+
         axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA)), 
           nrow = 1,ncol=3,
-          common.legend=TRUE,
+          common.legend=TRUE, legend = "bottom",
           labels = c("WHB","HER","MAC")) 
-p
+
 ```
 
-**Figure `r iFig=iFig+1; iFig`** Comparison of ICES assessments with VPA, and projection with reported catches. 
+**Figure `r iFig=iFig+1; iFig`** Comparison of ICES assessments with VPA, and projection from VPA with reported catches. 
 
 
 ## Projections
@@ -673,27 +770,32 @@ sn=x[[1]][[7]][names(x[[1]][[7]])=="logN"]
 ```
 
 ```{r, runWhb, cache=FALSE}
+
+# Running or loading MSE results
+
 stk="whb"
-source("../run/runHcr.R") 
+# source("../run/runHcr.R") 
+load(file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
+
 ```
 
 ```{r, runHer, cache=FALSE}
+
 stk="her" 
-source("../run/runHcr.R") 
+# source("../run/runHcr.R") 
+load(file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
+
 ```
 
 ```{r, runMac, cache=FALSE}
+
 stk="mac"
-source("../run/runHcr.R") 
+# source("../run/runHcr.R") 
+load(file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
+
 ```
 
 ```{r, smry, cache=FALSE}
-source("../R/pm.R")
-
-library(FLCore)
-library(ggplotFL)
-library(ggpubr)
-library(plyr)
 
 load(file.path(dropboxdir,paste("data/runs/","whb",".RData",sep=""))) 
 whb=plot(window(FLStocks(llply(sims,function(x) x[[1]]))[c(1:6,9)],start=1991))
