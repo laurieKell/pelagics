@@ -205,7 +205,6 @@ herRet=FLStocks(llply(NSH.retro, function(x) {
   stock.n(res)=stock.n(x)
   harvest(res)=harvest(x)
   res}))
-for (i in 1:length(herRet)) name(herRet[[i]]) <- "HER"
 
 names(herRet)=laply(herRet, function(x) dims(x)$maxyear)
 save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
