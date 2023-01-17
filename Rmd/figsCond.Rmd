@@ -192,6 +192,7 @@ load(file.path(dropboxdir, "data/inputs/WHB/run/retro.RData"))
 whbRet=FLStocks(llply(RETRO, SAM2FLStock))
 for (i in 1:length(whbRet)) name(whbRet[[i]]) <- "WHB"
 
+names(whbRet)=laply(whbRet, function(x) dims(x)$maxyear)
 save(whbRet,file=file.path(dropboxdir, "data/om/whbRet.RData"))
 ```
 
@@ -206,6 +207,7 @@ herRet=FLStocks(llply(NSH.retro, function(x) {
   res}))
 for (i in 1:length(herRet)) name(herRet[[i]]) <- "HER"
 
+names(herRet)=laply(herRet, function(x) dims(x)$maxyear)
 save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
 ```
 
@@ -214,8 +216,8 @@ load(file.path(dropboxdir, "data/inputs/MAC/retro.RData"))
 macRet=FLStocks(llply(ret,SAM2FLStock))
 for (i in 1:length(macRet)) name(macRet[[i]]) <- "MAC"
 
+names(macRet)=laply(macRet, function(x) dims(x)$maxyear)
 save(macRet,file=file.path(dropboxdir, "data/om/macRet.RData"))
-
 ```
 
 
@@ -230,7 +232,6 @@ whbErr=laply(whbRet, function(x){
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
 save(whbErr,file=file.path(dropboxdir, "data/om/whbErr.RData"))
-
 ```
 
 ```{r, herErr}

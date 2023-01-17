@@ -47,10 +47,11 @@ setMethod('hcrICES', signature(object="FLStock",eql='FLBRP'),
                    start   =max(dimnames(object)$year)-10,
                    end     =start+10,
                    interval=1,
+                   lag     =1,
                    err     =NULL,
+                   implErr =0,
                    bndTac  =c(0,Inf),
                    bndWhen ="btrig",
-                   implErr =0,
                    bndCap  =1e6,...){
         
             if ("perfect"%in%names(list(...)))
@@ -71,8 +72,8 @@ setMethod('hcrICES', signature(object="FLStock",eql='FLBRP'),
             for (iYr in seq(start,end-1,interval)){
               #cat(iYr,", ",sep="")
               
-              stkYrs=iYr
-              refYrs=iYr
+              stkYrs=iYr-lag
+              refYrs=iYr-lag
               hcrYrs=iYr+1
               
               refpts(eql)[]=1
