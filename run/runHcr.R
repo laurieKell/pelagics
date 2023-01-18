@@ -19,7 +19,7 @@ source("../R/hcrICESV2.R")
 
 stkid=c("whb.27.1-91214","mac.27.nea","her.27.3a47d")
 
-#stk     ="her"
+#stk     ="whb"
 
 nits    =100
 start   =2001
@@ -54,8 +54,8 @@ implErr[["20% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.20,10)),dimnames=list
 implErr[["30% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.30,10)),dimnames=list(year=(start-1):end)),nits)
 
 implErr[["random final"]]=implErr[[4]]
-implErr[["random final"]][,ac(2012:2021)][]=sample(c(0.10,0.20,0.30),nits*10,T)
-
+implErr[["random final"]][,ac(2012:2021)][] = sample(c(0.10,0.20,0.30),nits*10,T)
+# implErr[["random final"]][,ac(2012:2021)][] = sample(runif(nits, 0.1, 0.3),nits*10,T)
 
 if (!FALSE){
 #Scenario
