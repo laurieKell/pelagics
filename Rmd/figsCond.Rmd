@@ -192,7 +192,8 @@ load(file.path(dropboxdir, "data/inputs/WHB/run/retro.RData"))
 whbRet=FLStocks(llply(RETRO, SAM2FLStock))
 for (i in 1:length(whbRet)) name(whbRet[[i]]) <- "WHB"
 
-names(whbRet)=laply(whbRet, function(x) dims(x)$maxyear)
+
+names(whbRet)=laply(whbRet, function(x) dims(x)$maxyear) 
 save(whbRet,file=file.path(dropboxdir, "data/om/whbRet.RData"))
 ```
 
@@ -206,7 +207,8 @@ herRet=FLStocks(llply(NSH.retro, function(x) {
   harvest(res)=harvest(x)
   res}))
 
-names(herRet)=laply(herRet, function(x) dims(x)$maxyear)
+
+names(herRet)=laply(herRet, function(x) dims(x)$maxyear) 
 save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
 ```
 
@@ -215,7 +217,8 @@ load(file.path(dropboxdir, "data/inputs/MAC/retro.RData"))
 macRet=FLStocks(llply(ret,SAM2FLStock))
 for (i in 1:length(macRet)) name(macRet[[i]]) <- "MAC"
 
-names(macRet)=laply(macRet, function(x) dims(x)$maxyear)
+
+names(macRet)=laply(macRet, function(x) dims(x)$maxyear) 
 save(macRet,file=file.path(dropboxdir, "data/om/macRet.RData"))
 ```
 
@@ -430,24 +433,28 @@ ggarrange(
 ```{r, whb-retro, warning=FALSE, fig.asp=1.0}
 retros=list("whb"=plot(window(whbRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
   theme_bw()+ 
-  theme(legend.position="none"))
+  geom_line(col="red")+  
+  theme(legend.position="none")+  
+  facet_grid(qname ~.,scale="free"))
 
 # retros[["whb"]]
 
 retros[["her"]]=plot(window(herRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
   theme_bw()+ 
+  geom_line(col="blue")+
   theme(legend.position="none") +
-  facet_grid(qname ~ stock)
+  facet_grid(qname ~.,scale="free")
 
 summary(plot(window(herRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec)))
 # retros[["her"]]
 
 retros[["mac"]]=plot(window(macRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
   theme_bw()+ 
-  theme(legend.position="none")
+  geom_line(col="green")+
+  theme(legend.position="none")+
+  facet_grid(qname ~.,scale="free")
 
 # retros[["mac"]]+facet_grid(.~qname)
-
 ggarrange(
   retros[["whb"]]+  
   theme(panel.grid.major =element_blank(),
@@ -473,7 +480,6 @@ ggarrange(
   nrow = 1,ncol=3,
   common.legend=TRUE, legend="bottom",
   labels = c("WHB","HER","MAC")) 
-
 ```
 
 **Figure `r iFig=iFig+1; iFig`** Retrospective analysis for ICES assessments. 
@@ -886,14 +892,14 @@ load(file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
 
 ```
 
-```{r, smry, cache=FALSE}
-
+```{r, smry}
 load(file.path(dropboxdir,paste("data/runs/","whb",".RData",sep=""))) 
 whb=plot(window(FLStocks(llply(sims,function(x) x[[1]]))[c(1:6,9)],start=1991))
 whbY=ldply(sims, function(x) as.data.frame(pmYear(x[[1]]),drop=T))
 whbI=ldply(sims, function(x) model.frame(pmIter(x[[1]])))
 whbC=plot(FLQuants(llply(sims[-1],function(x) catch(window(x[[1]],start=2000,end=2021)))))+
-  geom_line(aes(year,data),data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),col="red")+facet_grid(qname~.)
+  geom_line(aes(year,data),data=as.data.frame(catch(sims[[1]][[1]])[,ac(2000:2021)]),col="red")+
+  facet_grid(qname~.)
 whbS=plot(FLQuants(llply(sims[-1],function(x) ssb(window(x[[1]],start=2000,end=2021)))))+
   geom_line(aes(year,data),data=as.data.frame(apply(ssb(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
   geom_line(aes(year,data),data=as.data.frame(refs$blim),col="red")+
@@ -931,7 +937,7 @@ save(whbY,whbI,herY,herI,macY,macI,file=file.path(dropboxdir,paste("data/results
 ```
 
 
-```{r, smry-yr, fig.width=12,fig.height=6, cache=FALSE}
+```{r, smry-yr, fig.width=12,fig.height=6}
 ggarrange(whb+theme_bw()+
   theme(panel.grid.major =element_blank(),  
         axis.ticks       =element_blank(),
