@@ -859,13 +859,16 @@ stk="whb"
 # source("../run/runHcr.R") 
 load(file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
 
-whb  = plot(window(FLStocks(llply(sims,function(x) x[[1]]))[c(1:6,9)],start=1991))
-whbY = ldply(sims, function(x) as.data.frame(pmYear(x[[1]]),drop=T))
-whbI = ldply(sims, function(x) model.frame(pmIter(x[[1]])))
+whb  = plot(window(FLStocks(llply(sims,function(x) x[[1]]))[c(1:6,9)],start=2001))
+whbY = ldply(sims, function(x) as.data.frame(pmYear(window(x[[1]], start=2001)),drop=T))
+whbI = ldply(sims, function(x) model.frame(pmIter(window(x[[1]], start=2001) )))
+
+# whbI %>% filter(iter %in% 74:76) %>% View()
 
 whbC=plot(FLQuants(llply(sims[-1],function(x) catch(window(x[[1]],start=2000,end=2021)))))+
   geom_line(aes(year,data),data=as.data.frame(apply(catch(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
   facet_wrap(~qname)
+
 
 whbS=plot(FLQuants(llply(sims[-1],function(x) ssb(window(x[[1]],start=2000,end=2021)))))+
   geom_line(aes(year,data),data=as.data.frame(apply(ssb(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
@@ -888,12 +891,28 @@ p1 <-
   plot(
   FLQuants(llply(sims[c("HCR1", "HCR1 bnd","HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")],
                  function(x) catch(window(x[[1]],start=2000,end=2021))) ))+
-  geom_line(data=mutate(as.data.frame(apply(catch(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),
-                        data = cumsum(data)),
-            aes(year,data), 
-            col="blue", size=1, linetype=2) +
+  geom_line(aes(year,data),
+            data=as.data.frame(apply(catch(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),
+            linetype=2, col="blue", size=1)+
   expand_limits(y=0)  + 
   facet_grid(qname~.) # facet_wrap(~qname, ncol=1)
+
+p1b <-
+  filter(whbY, qname=="cCum", 
+       .id %in% c("HCR1", "HCR1 bnd","HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd"), 
+       year %in% 2000:2021) %>% 
+  ggplot(aes(x=year, y=median, group=.id)) +
+  geom_line(linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), alpha=0.2, fill="red") +
+  geom_line(data= filter(whbY, qname=="cCum", 
+                               .id %in% c("ICES"), 
+                               year %in% 2000:2021) %>% dplyr::select(-.id),
+            aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  labs(y="") +
+  expand_limits(y=0) +
+  facet_grid(.id~.) # facet_wrap(~qname, ncol=1)
+
 
 # ssb
 p2 <-
@@ -928,6 +947,14 @@ ggarrange(
         # axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
           
+  p1b +
+  theme_bw()+
+  theme(panel.grid.major =element_blank(),  
+        strip.background.y = element_blank(), strip.text.y = element_blank(),
+        # axis.ticks       =element_blank(),
+        # axis.text.y      =element_blank(),
+        panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
+  
   p2+theme_bw()+ 
   theme(panel.grid.major =element_blank(),
         strip.background.y = element_blank(), strip.text.y = element_blank(),
@@ -941,11 +968,11 @@ ggarrange(
         # axis.text.y      =element_blank(),
         panel.border     =element_rect(linetype = 1, colour="black", fill=NA)),
   
-  nrow = 1,ncol=3,
+  nrow = 1,ncol=4,
   common.legend=TRUE,
-  labels = c("Catch","SSB", "F"),
-  label.x = rep(0.12,3),
-  label.y = rep(0.98,3)) 
+  labels = c("Catch", "Cum. Catch","SSB", "F"),
+  label.x = rep(0.12,4),
+  label.y = rep(0.98,4)) 
 
 
 
@@ -1135,6 +1162,76 @@ ggarrange(p1+theme_bw()+
 
 ```{r, fig.width=12,fig.height=6, cache=FALSE}
 library(reshape)
+
+calc_boxplot_stat <- function(x) {
+  coef <- 1.5
+  n <- sum(!is.na(x))
+  # calculate quantiles
+  stats <- quantile(x, probs = c(0.0, 0.25, 0.5, 0.75, 1.0))
+  names(stats) <- c("ymin", "lower", "middle", "upper", "ymax")
+  iqr <- diff(stats[c(2, 4)])
+  # set whiskers
+  outliers <- x < (stats[2] - coef * iqr) | x > (stats[4] + coef * iqr)
+  if (any(outliers)) {
+    stats[c(1, 5)] <- range(c(stats[2:4], x[!outliers]), na.rm = TRUE)
+  }
+  return(stats)
+}
+
+
+t <-
+  whbI %>% 
+  mutate(
+    hcr = stringr::word(.id, 1, sep=" "),
+    hcr = gsub("ICES","_ICES", hcr),
+    
+    cap = ifelse(grepl("cap", .id), "cap", ""),
+    bnd = ifelse(grepl("bnd", .id), "bnd", ""),
+    
+    # .id = gsub(" bnd| cap","", .id), 
+    # .id = gsub("1$","1 0%", .id), 
+    # .id = gsub("2$","2 0%", .id), 
+    
+    impl = stringr::str_extract( .id, "[:digit:]{2}"),
+    impl = ifelse(is.na(impl), "0", impl)
+  ) %>% 
+    dplyr::select(-iter) %>% 
+  tidyr::pivot_longer(names_to="variable", values_to="data", catch.50:aav) %>% 
+  dplyr::mutate(variable = factor(variable, levels=c("catch.50", "iav.50", "aav"))) 
+
+
+# t %>% filter(grepl("%", .id)) %>% View()
+# glimpse(t)
+
+t %>% 
+  # dplyr::select(-iter) %>% 
+  # tidyr::pivot_longer(names_to="variable", values_to="data", catch.50:aav) %>% 
+  # dplyr::mutate(variable = factor(variable, levels=c("catch.50", "iav.50", "aav"))) %>% 
+  ggplot(aes(x=.id, y=data)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_boxplot() +
+  facet_grid(variable~hcr+impl+bnd+cap, scales="free")
+
+ggplot(diamonds, aes(x=cut, y=price, fill=cut)) + 
+    stat_summary(fun.data = calc_boxplot_stat, geom="boxplot") + 
+    facet_wrap(~clarity, scales="free")
+
+
+t %>% 
+  
+  ggplot(aes(x=.id, y=data)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  stat_summary(fun.data = calc_boxplot_stat, geom="boxplot", aes(colour=hcr)) +
+  # geom_boxplot(aes(colour=hcr), outlier.shape = NA) +
+  expand_limits(y=0) +
+  # scale_y_continuous(limits = quantile(t$data, c(0.1, 0.9))) +
+  facet_grid(variable~impl+bnd+cap, scales="free", space="free_x")
+  
+
+
+
 p1=ggboxplot(melt(whbI[,-5],id=".id"),y="value")+facet_grid(variable~.id,scale="free")
 p2=ggboxplot(melt(herI[,-5],id=".id"),y="value")+facet_grid(variable~.id,scale="free")
 p3=ggboxplot(melt(macI[,-5],id=".id"),y="value")+facet_grid(variable~.id,scale="free")
