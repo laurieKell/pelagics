@@ -2,6 +2,7 @@ pmYear<-function(x){
   FLQuants(catch=FLQuantPoint(catch(x)),
            ssb  =FLQuantPoint(ssb(  x)),
            rec  =FLQuantPoint(rec(  x)),
+           fbar =FLQuantPoint(fbar(  x)),
            cCum =FLQuantPoint(apply(catch(x),c(6), cumsum)),
            aav  =FLQuantPoint(as.FLQuant(adply(catch(x), c(1,3:6),  function(y) 
              data.frame(year=names(y)[-length(y)],

@@ -1,0 +1,408 @@
+---
+# FigsCond simple.Rmd
+#
+# Simplified!
+#
+# title: "**Pelagics**"
+# subtitle: "Operating Model Conditioning"
+# author: "L Kell"
+# date: "`r format(Sys.time(), '%d %B, %Y')`"
+# output: html_document
+output:
+  word_document:
+    reference_docx: ../report_template.dotx
+mathjax: TRUE
+# fig_width: 6 
+# fig_height: 4 
+# tags: FLR FLCore introduction
+# license: Creative Commons Attribution-ShareAlike 4.0 International Public License
+# bibliography: refs.bib
+---
+
+
+```{r, knitr, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+library(knitr)
+
+knitr::opts_chunk$set(
+               cache     =TRUE, 
+               comment   ="", 
+               warning   =FALSE, 
+               message   =FALSE, 
+               error     =FALSE, 
+               echo      =FALSE, 
+               eval      =TRUE,
+               crop      =TRUE,
+               cache.path="../cache/figs/cond/",
+               fig.path  ="../tex/figs",
+               fig.width =10,
+               fig.height=8,
+               dev       ="png")
+
+rm(list=ls())
+
+iFig=0
+iTab=0
+nits=100
+
+library(FLCore) 
+library(ggplotFL)
+library(FLfse)
+library(FLBRP)
+library(FLasher)
+library(FLAssess)
+library(FLSAM)
+library(kobe)   
+library(mpb)    
+
+library(rjson) # install.packages("rjson"); used for dropbox function
+library(RJSONIO)
+
+library(TMB)
+library(stockassessment)
+  
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(reshape)
+library(magrittr)
+library(ggpubr)
+  
+library(grid) 
+library(ggpubr)
+
+library(compositions) 
+
+theme_set(theme_bw(16))
+
+source('../R/kobe-phaseMar.R')
+source('../R/kobe-phase.R')
+source('../R/get_dropbox.r')
+source("../R/pm.R")
+
+dropboxdir<-try(file.path(get_dropbox(), "pelagics"))
+
+if ("try-error"%in%is(dropboxdir))
+  dropboxdir="~/Dropbox/pelagics"
+
+# Projection function
+prj<-function(x,
+              ftar,
+              yrs=dimnames(x)$year[dim(m(x))[2]-31:0],
+              nit=nits){
+  f0=array(c(rep(c(1,rep(0,dim(x)[1])),dim(x)[1]-1),1),
+           c(dim(harvest(x))[1],dim(harvest(x))[1]),
+           dimnames=list(dims(x)$min:dims(x)$max,dims(x)$min:dims(x)$max))
+  f0=f0*0.05
+  F0=aperm(maply(data.frame(year=yrs), function(year) rlnorm.rplus(nits,rep(0,dim(x)[1]),f0)),c(3,1,2)) 
+  names(dimnames(F0))[c(1,3)]=c("age","iter")
+  F0=as.FLQuant(c(F0),dimnames=dimnames(F0))
+  
+  x=propagate(x,nit)
+  stock.n(x)[,ac(yrs)]=stock.n(x)[,ac(yrs)]%*%F0
+  
+  control=as(FLQuants("f"=ftar),"fwdControl")
+  
+  res=fwd(x,sr=rec(x),control=control)
+  res
+}
+
+# sam2FLQuants function
+sam2FLQuant<-function(x,row=1){
+  FLQuants(ssb     =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logssb"], 
+                     dimnames=list(year=x[["data"]][["years"]])),
+           fbar    =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logfbar"],  
+                     dimnames=list(year=x[["data"]][["years"]])),
+           catch   =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logCatch"], 
+                     dimnames=list(year=x[["data"]][["years"]])),
+           landings=
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logLand"],  
+                     dimnames=list(year=x[["data"]][["years"]])),
+           rec     =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logR"],     
+                     dimnames=list(year=x[["data"]][["years"]])),
+           biomass =
+             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logtsb"],   
+                     dimnames=list(year=x[["data"]][["years"]])))}
+
+listDataObjects <- function(fileName){
+  
+  try(missing(fileName), "Stop: no fileName supplied")
+  load(fileName, ex <- new.env())
+  print(ls(ex)) 
+  remove(ex)
+}
+
+loadRDataObject <- function(fileName, object){
+  
+  try(missing(fileName), "Stop: no fileName supplied")
+  try(missing(object), "Stop: no object supplied")
+  try(length(object)>1, "Stop: only one object can be supplied")
+  load(fileName)
+  get(ls()[ls() %in% object])
+}
+
+# loadrdata
+loadRData <- function(fileName){
+  load(fileName)
+  get(ls()[ls() != "fileName"])
+}
+
+# reference points
+refs <-
+  read.csv(file.path(dropboxdir,"data/inputs/refs.csv"),header=T) %>% 
+  mutate(across(c("flim","fpa","fmsy","fcap","blim","bpa","msybtrigger"), as.numeric)) %>% 
+  tidyr::pivot_longer(names_to = "refpoint", values_to = "data", c("flim","fpa","fmsy","fcap","blim","bpa","msybtrigger")) %>% 
+  drop_na(data) %>% 
+  dplyr::mutate(stk    = substr(stockkeylabelold,1,3)) %>%
+  dplyr::mutate(qname  = ifelse(grepl("^f", refpoint), "fbar","ssb")) %>% 
+  dplyr::rename(year = assessmentyear) %>% 
+  dplyr::mutate(reftype = dplyr::case_when(
+    grepl("lim", refpoint)  ~ "lim",
+    grepl("pa", refpoint)   ~ "pa",
+    grepl("msy", refpoint)  ~ "msy",
+    NA                      ~ ""
+  )) %>% 
+  dplyr::select(spp, stk, year, refpoint, reftype, data, qname) 
+
+# load and run by stock
+for (mystk in c("whb","her","mac")) {
+  
+  # print(mystk)
+  
+  load(file.path(dropboxdir,paste0("data/om/",mystk,".RData")))     # whb; whbR
+  load(file.path(dropboxdir,paste0("data/om/",mystk,"Ret.RData")))  # whbRet
+  load(file.path(dropboxdir,paste0("data/om/",mystk,"Err.RData")))  # whbErr
+
+  
+  # source("../run/runHcr.R")
+  # listDataObjects(file.path(dropboxdir,paste0("data/runs/",mystk,".RData")))
+  load(file.path(dropboxdir,paste0("data/runs/",mystk,".RData")))   # sims
+  assign(paste0(mystk,"sims"), sims) 
+  
+  assign(paste0(mystk,"Y"),
+         ldply(sims, function(x) as.data.frame(pmYear(window(x[[1]], start=2001)),drop=T)) )
+  
+  assign(paste0(mystk,"I"),
+         ldply(sims, function(x) model.frame(pmIter(window(x[[1]], start=2001)))) )
+
+  # assign(paste0(mystk,"CatchPlot"),
+  #        plot(FLQuants(llply(sims[-1],function(x) catch(window(x[[1]],start=2000,end=2021))))) +
+  #          geom_line(aes(year,data),data=as.data.frame(apply(catch(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
+  #          facet_wrap(~qname) )
+
+  # assign(paste0(mystk,"SSBPlot"),
+  #        plot(FLQuants(llply(sims[-1],function(x) ssb(window(x[[1]],start=2000,end=2021)))))+
+  #          geom_line(aes(year,data),
+  #                    data=as.data.frame(apply(ssb(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
+  #          geom_line(aes(year,data),
+  #                    data=filter(refs, stk==mystk, refpoint=="blim") %>% dplyr::select(-qname),
+  #                    col="red", inherit.aes=FALSE)+
+  #          geom_line(aes(year,data),
+  #                    data=filter(refs, stk==mystk, refpoint=="msybtrigger") %>% dplyr::select(-qname),
+  #                    col="blue", inherit.aes=FALSE)+
+  #          facet_wrap(~qname) )
+  
+  # assign(paste0(mystk,"FPlot"),
+  #        plot(FLQuants(llply(sims[-1],function(x) fbar(window(x[[1]],start=2000,end=2021)))))+
+  #          geom_line(aes(year,data),
+  #                    data=as.data.frame(apply(fbar(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
+  #          geom_line(aes(year,data),
+  #                    data=filter(refs, stk==mystk, refpoint=="fmsy") %>% dplyr::select(-qname),
+  #                    col="blue", inherit.aes=FALSE)+
+  #          facet_wrap(~qname) )
+  
+}
+
+
+```
+
+# Hindcast analysis of pelagic stocks
+
+## Blue whiting, North Sea herring and Northeast Atlantic mackerel
+
+**L. Kell, M.A. Pastoors
+
+`r format(Sys.time(), '%d/%m/%Y')`
+
+
+
+## Simulation results
+
+
+### Blue whiting
+
+
+```{r, runWhb1, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "whb"
+myvar     <- c("catch","cCum", "ssb","fbar", "aav", "aav2")
+scenarios <- c("ICES", "Fmsy", "HCR1")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+
+  
+whbY %>% 
+  filter(
+    qname %in% c(myvar), 
+    .id %in% scenarios, 
+    year %in% 2000:2021
+  ) %>%
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype),
+            linewidth=1, linetype=3) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+
+
+```
+
+\newpage
+
+```{r, runWhb2, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "whb"
+myvar     <- c("catch","cCum", "ssb","fbar")
+scenarios <- c("ICES","HCR1",  "HCR1 bnd", "HCR2 bnd")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+
+  
+whbY %>% 
+  filter(
+    qname %in% c(myvar), 
+    .id %in% scenarios, 
+    year %in% 2000:2021
+  ) %>%
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype),
+            linewidth=1, linetype=3) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+
+
+```
+
+\newpage
+
+
+```{r, runWhb3, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "whb"
+myvar     <- c("catch","cCum", "ssb","fbar")
+scenarios <- c("HCR1", "HCR1 +10%", "HCR1 +20%", "HCR1 +30%")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+
+  
+whbY %>% 
+  filter(
+    qname %in% c(myvar), 
+    .id %in% scenarios, 
+    year %in% 2000:2021
+  ) %>%
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype),
+            linewidth=1, linetype=3) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+\newpage
+
+
+```{r, runWhb4, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "whb"
+myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+scenarios <- c("HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap", "HCR1 +random bnd", "HCR1 +random bnd recent")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+
+  
+whbY %>% 
+  filter(
+    qname %in% c(myvar), 
+    .id %in% scenarios, 
+    year %in% 2000:2021
+  ) %>%
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype),
+            linewidth=1, linetype=3) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```

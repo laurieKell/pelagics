@@ -158,7 +158,7 @@ params(whbR)[]=median(rec(whb))
 
 catch(whb)=computeCatch(whb,"all")
 
-save(whb,whbR,file=file.path(dropboxdir, "data/om/whb.RData"))
+# save(whb,whbR,file=file.path(dropboxdir, "data/om/whb.RData"))
 ```
 
 ```{r, assessment-her}
@@ -183,7 +183,7 @@ params(macR)[]=median(rec(mac))
 
 catch(mac)=computeCatch(mac,"all")
 
-save(mac,macR,file=file.path(dropboxdir, "data/om/mac.RData"))
+# save(mac,macR,file=file.path(dropboxdir, "data/om/mac.RData"))
 ```
 
 
@@ -192,7 +192,7 @@ save(mac,macR,file=file.path(dropboxdir, "data/om/mac.RData"))
 load(file.path(dropboxdir, "data/inputs/WHB/run/retro.RData"))
 whbRet=FLStocks(llply(RETRO, SAM2FLStock))
 names(whbRet)=laply(whbRet, function(x) dims(x)$maxyear)
-save(whbRet,file=file.path(dropboxdir, "data/om/whbRet.RData"))
+# save(whbRet,file=file.path(dropboxdir, "data/om/whbRet.RData"))
 
 ```
 
@@ -205,7 +205,7 @@ herRet=FLStocks(llply(NSH.retro, function(x) {
   harvest(res)=harvest(x)
   res}))
 names(herRet)=laply(herRet, function(x) dims(x)$maxyear)
-save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
+# save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
 
 ```
 
@@ -213,7 +213,7 @@ save(herRet,file=file.path(dropboxdir, "data/om/herRet.RData"))
 load(file.path(dropboxdir, "data/inputs/MAC/retro.RData"))
 macRet=FLStocks(llply(ret,SAM2FLStock))
 names(macRet)=laply(macRet, function(x) dims(x)$maxyear)
-save(macRet,file=file.path(dropboxdir, "data/om/macRet.RData"))
+# save(macRet,file=file.path(dropboxdir, "data/om/macRet.RData"))
 ```
 
 
@@ -227,7 +227,7 @@ whbErr=laply(whbRet, function(x){
   c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
-save(whbErr,file=file.path(dropboxdir, "data/om/whbErr.RData"))
+# save(whbErr,file=file.path(dropboxdir, "data/om/whbErr.RData"))
 ```
 
 ```{r, herErr}
@@ -242,7 +242,7 @@ herErr=laply(herRet, function(x){
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
 save(herErr,file=file.path(dropboxdir, "data/om/herErr.RData"))
-# save(herErr, file="../data/om/herErr.RData")
+# # save(herErr, file="../data/om/herErr.RData")
 ```
 
 ```{r, macErr}
@@ -256,7 +256,7 @@ macErr=laply(macRet, function(x){
   c(f  =c(fbar(x)[,yr]/fbar(om1)[,yr]),
     ssb=c(ssb(x)[,yr])/c(ssb(om1)[,yr]))})
 
-save(macErr,file=file.path(dropboxdir, "data/om/macErr.RData"))
+# save(macErr,file=file.path(dropboxdir, "data/om/macErr.RData"))
 # save(macErr, file="../data/om/macErr.RData")
 ```
 
@@ -425,9 +425,14 @@ ggarrange(
 ## Retrospective analyses
 
 ```{r, whb-retro, warning=FALSE, fig.asp=1.0}
-retros=list("whb"=plot(window(whbRet,start=1990),metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
-  theme_bw()+ 
-  theme(legend.position="none"))
+
+retros=
+  list(
+    "whb"=plot(window(whbRet,start=1990),
+               metrics=list("SSB"=ssb,"F"=fbar, "rec"=rec))+
+            theme_bw()+ 
+            theme(legend.position="none")
+  )
 
 # retros[["whb"]]
 
@@ -804,9 +809,9 @@ herRefs=FLQuants(dlply(subset(refs,spp=="Herring"),     .(ref), with, as.FLQuant
 
 macRefs=FLQuants(dlply(subset(refs,spp=="Mackerel"),    .(ref), with, as.FLQuant(data.frame(year=year,data=data))))
 
-save(whb,whbFtar,whbErr,whbCtc,whbFmsy,whbRefs,file=file.path(dropboxdir,"data/om/whbOM.RData"))
-save(her,herFtar,herErr,herCtc,herFmsy,herRefs,file=file.path(dropboxdir,"data/om/herOM.RData"))
-save(mac,macFtar,macErr,macCtc,macFmsy,macRefs,file=file.path(dropboxdir,"data/om/macOM.RData")) 
+# save(whb,whbFtar,whbErr,whbCtc,whbFmsy,whbRefs,file=file.path(dropboxdir,"data/om/whbOM.RData"))
+# save(her,herFtar,herErr,herCtc,herFmsy,herRefs,file=file.path(dropboxdir,"data/om/herOM.RData"))
+# save(mac,macFtar,macErr,macCtc,macFmsy,macRefs,file=file.path(dropboxdir,"data/om/macOM.RData")) 
 
 ```
 
@@ -883,8 +888,8 @@ whbF=plot(FLQuants(llply(sims[-1],function(x) fbar(window(x[[1]],start=2000,end=
   # facet_grid(qname~.)
   facet_wrap(~qname)
 
-save(whbY,whbI,whbC,whbS,whbF,
-     file=file.path(dropboxdir,paste("data/results/",stk, "smry",".RData",sep="")))
+# save(whbY,whbI,whbC,whbS,whbF,
+#     file=file.path(dropboxdir,paste("data/results/",stk, "smry",".RData",sep="")))
 
 # catch
 p1 <-
@@ -1001,8 +1006,8 @@ herF=plot(FLQuants(llply(sims[-1],function(x) fbar(window(x[[1]],start=2000,end=
   facet_grid(qname~.)
   facet_wrap(~qname)
 
-save(herY,herI,herC,herS,herF,
-     file=file.path(dropboxdir,paste("data/results/",stk, "smry",".RData",sep="")))
+# save(herY,herI,herC,herS,herF,
+#     file=file.path(dropboxdir,paste("data/results/",stk, "smry",".RData",sep="")))
 
 ```
 
@@ -1025,7 +1030,7 @@ macS=plot(FLQuants(llply(sims[-1],function(x) ssb(window(x[[1]],start=2000,end=2
   geom_line(aes(year,data),data=as.data.frame(refs$msybtrigger),col="blue")+
   facet_grid(qname~.)
 
-save(whbY,whbI,herY,herI,macY,macI,file=file.path(dropboxdir,paste("data/results/",stk, "smry",".RData",sep="")))
+# save(whbY,whbI,herY,herI,macY,macI,file=file.path(dropboxdir,paste("data/results/",stk, "smry",".RData",sep="")))
 
 
 ```
