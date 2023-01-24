@@ -84,71 +84,6 @@ dropboxdir<-try(file.path(get_dropbox(), "pelagics"))
 if ("try-error"%in%is(dropboxdir))
   dropboxdir="~/Dropbox/pelagics"
 
-# Projection function
-prj<-function(x,
-              ftar,
-              yrs=dimnames(x)$year[dim(m(x))[2]-31:0],
-              nit=nits){
-  f0=array(c(rep(c(1,rep(0,dim(x)[1])),dim(x)[1]-1),1),
-           c(dim(harvest(x))[1],dim(harvest(x))[1]),
-           dimnames=list(dims(x)$min:dims(x)$max,dims(x)$min:dims(x)$max))
-  f0=f0*0.05
-  F0=aperm(maply(data.frame(year=yrs), function(year) rlnorm.rplus(nits,rep(0,dim(x)[1]),f0)),c(3,1,2)) 
-  names(dimnames(F0))[c(1,3)]=c("age","iter")
-  F0=as.FLQuant(c(F0),dimnames=dimnames(F0))
-  
-  x=propagate(x,nit)
-  stock.n(x)[,ac(yrs)]=stock.n(x)[,ac(yrs)]%*%F0
-  
-  control=as(FLQuants("f"=ftar),"fwdControl")
-  
-  res=fwd(x,sr=rec(x),control=control)
-  res
-}
-
-# sam2FLQuants function
-sam2FLQuant<-function(x,row=1){
-  FLQuants(ssb     =
-             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logssb"], 
-                     dimnames=list(year=x[["data"]][["years"]])),
-           fbar    =
-             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logfbar"],  
-                     dimnames=list(year=x[["data"]][["years"]])),
-           catch   =
-             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logCatch"], 
-                     dimnames=list(year=x[["data"]][["years"]])),
-           landings=
-             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logLand"],  
-                     dimnames=list(year=x[["data"]][["years"]])),
-           rec     =
-             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logR"],     
-                     dimnames=list(year=x[["data"]][["years"]])),
-           biomass =
-             FLQuant(x[["sdrep"]][[row]][names(x[["sdrep"]][["value"]])=="logtsb"],   
-                     dimnames=list(year=x[["data"]][["years"]])))}
-
-listDataObjects <- function(fileName){
-  
-  try(missing(fileName), "Stop: no fileName supplied")
-  load(fileName, ex <- new.env())
-  print(ls(ex)) 
-  remove(ex)
-}
-
-loadRDataObject <- function(fileName, object){
-  
-  try(missing(fileName), "Stop: no fileName supplied")
-  try(missing(object), "Stop: no object supplied")
-  try(length(object)>1, "Stop: only one object can be supplied")
-  load(fileName)
-  get(ls()[ls() %in% object])
-}
-
-# loadrdata
-loadRData <- function(fileName){
-  load(fileName)
-  get(ls()[ls() != "fileName"])
-}
 
 # reference points
 refs <-
@@ -167,55 +102,37 @@ refs <-
   )) %>% 
   dplyr::select(spp, stk, year, refpoint, reftype, data, qname) 
 
-# load and run by stock
-for (mystk in c("whb","her","mac")) {
-  
-  # print(mystk)
-  
-  load(file.path(dropboxdir,paste0("data/om/",mystk,".RData")))     # whb; whbR
-  load(file.path(dropboxdir,paste0("data/om/",mystk,"Ret.RData")))  # whbRet
-  load(file.path(dropboxdir,paste0("data/om/",mystk,"Err.RData")))  # whbErr
+reload <- FALSE
 
+if(reload) {
+  # load and run by stock
+  combY <- combI <- data.frame(stringsAsFactors = FALSE)
   
-  # source("../run/runHcr.R")
-  # listDataObjects(file.path(dropboxdir,paste0("data/runs/",mystk,".RData")))
-  load(file.path(dropboxdir,paste0("data/runs/",mystk,".RData")))   # sims
-  assign(paste0(mystk,"sims"), sims) 
+  for (mystk in c("whb","her","mac")) {
   
-  assign(paste0(mystk,"Y"),
-         ldply(sims, function(x) as.data.frame(pmYear(window(x[[1]], start=2001)),drop=T)) )
+    load(file.path(dropboxdir,paste0("data/runs/",mystk,".RData")))   # sims
   
-  assign(paste0(mystk,"I"),
-         ldply(sims, function(x) model.frame(pmIter(window(x[[1]], start=2001)))) )
+    combY <-
+      bind_rows(
+      combY, 
+      ldply(sims, function(x) as.data.frame(pmYear(window(x[[1]], start=2001)),drop=T)) %>% mutate(stk=mystk) 
+    )  
+    
+    combI <-
+      bind_rows(
+      combI, 
+      ldply(sims, function(x) model.frame(pmIter(window(x[[1]], start=2001)))) %>% mutate(stk=mystk) 
+    )  
+  }
 
-  # assign(paste0(mystk,"CatchPlot"),
-  #        plot(FLQuants(llply(sims[-1],function(x) catch(window(x[[1]],start=2000,end=2021))))) +
-  #          geom_line(aes(year,data),data=as.data.frame(apply(catch(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
-  #          facet_wrap(~qname) )
-
-  # assign(paste0(mystk,"SSBPlot"),
-  #        plot(FLQuants(llply(sims[-1],function(x) ssb(window(x[[1]],start=2000,end=2021)))))+
-  #          geom_line(aes(year,data),
-  #                    data=as.data.frame(apply(ssb(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
-  #          geom_line(aes(year,data),
-  #                    data=filter(refs, stk==mystk, refpoint=="blim") %>% dplyr::select(-qname),
-  #                    col="red", inherit.aes=FALSE)+
-  #          geom_line(aes(year,data),
-  #                    data=filter(refs, stk==mystk, refpoint=="msybtrigger") %>% dplyr::select(-qname),
-  #                    col="blue", inherit.aes=FALSE)+
-  #          facet_wrap(~qname) )
+  save(combY, combI,
+       file=file.path(dropboxdir,paste0("data/runs/","comb_df",".RData")))
   
-  # assign(paste0(mystk,"FPlot"),
-  #        plot(FLQuants(llply(sims[-1],function(x) fbar(window(x[[1]],start=2000,end=2021)))))+
-  #          geom_line(aes(year,data),
-  #                    data=as.data.frame(apply(fbar(sims[[1]][[1]]),2,median)[,ac(2000:2021)]),linetype=2)+
-  #          geom_line(aes(year,data),
-  #                    data=filter(refs, stk==mystk, refpoint=="fmsy") %>% dplyr::select(-qname),
-  #                    col="blue", inherit.aes=FALSE)+
-  #          facet_wrap(~qname) )
+} else {
+
+  load(file=file.path(dropboxdir,paste0("data/runs/","comb_df",".RData")))  
   
 }
-
 
 ```
 
@@ -240,18 +157,12 @@ for (mystk in c("whb","her","mac")) {
 mystk     <- "whb"
 myvar     <- c("catch","cCum", "ssb","fbar", "aav", "aav2")
 scenarios <- c("ICES", "Fmsy", "HCR1")
-rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
-ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
-
+rp        <- refs  %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
   
-whbY %>% 
-  filter(
-    qname %in% c(myvar), 
-    .id %in% scenarios, 
-    year %in% 2000:2021
-  ) %>%
-  mutate(.id = factor(.id, levels=scenarios)) %>% 
-  
+df %>% 
   ggplot(aes(x=year, y=median)) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(),  
@@ -285,17 +196,11 @@ mystk     <- "whb"
 myvar     <- c("catch","cCum", "ssb","fbar")
 scenarios <- c("ICES","HCR1",  "HCR1 bnd", "HCR2 bnd")
 rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
-ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
-
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
   
-whbY %>% 
-  filter(
-    qname %in% c(myvar), 
-    .id %in% scenarios, 
-    year %in% 2000:2021
-  ) %>%
-  mutate(.id = factor(.id, levels=scenarios)) %>% 
-  
+df %>% 
   ggplot(aes(x=year, y=median)) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(),  
@@ -330,17 +235,11 @@ mystk     <- "whb"
 myvar     <- c("catch","cCum", "ssb","fbar")
 scenarios <- c("HCR1", "HCR1 +10%", "HCR1 +20%", "HCR1 +30%")
 rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
-ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
-
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
   
-whbY %>% 
-  filter(
-    qname %in% c(myvar), 
-    .id %in% scenarios, 
-    year %in% 2000:2021
-  ) %>%
-  mutate(.id = factor(.id, levels=scenarios)) %>% 
-  
+df %>% 
   ggplot(aes(x=year, y=median)) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(),  
@@ -373,17 +272,11 @@ mystk     <- "whb"
 myvar     <- c("catch","cCum", "ssb","fbar", "aav")
 scenarios <- c("HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap", "HCR1 +random bnd", "HCR1 +random bnd recent")
 rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
-ices      <- whbY %>% filter(qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
-
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
   
-whbY %>% 
-  filter(
-    qname %in% c(myvar), 
-    .id %in% scenarios, 
-    year %in% 2000:2021
-  ) %>%
-  mutate(.id = factor(.id, levels=scenarios)) %>% 
-  
+df %>% 
   ggplot(aes(x=year, y=median)) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(),  
@@ -402,6 +295,32 @@ whbY %>%
             aes(x=year, y=data, group=reftype, col=reftype),
             linewidth=1, linetype=3) +
   
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+```{r, check, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "whb"
+myvar     <- c("catch")
+scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  group_by(.id) %>% 
+  mutate(perc_diff = (median-lag(median))/lag(median)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=perc_diff)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(linewidth=1, colour="red") +
+  geom_hline(yintercept = 0.25, colour="black", linewidth=1, linetype=2) +
+  geom_hline(yintercept = -0.2, colour="black", linewidth=1, linetype=2) +
   expand_limits(y=0) +
   facet_grid(qname ~ .id, scales="free_y")
 
