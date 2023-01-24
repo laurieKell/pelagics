@@ -85,28 +85,11 @@ if ("try-error"%in%is(dropboxdir))
   dropboxdir="~/Dropbox/pelagics"
 
 
-# reference points
-refs <-
-  read.csv(file.path(dropboxdir,"data/inputs/refs.csv"),header=T) %>% 
-  mutate(across(c("flim","fpa","fmsy","fcap","blim","bpa","msybtrigger"), as.numeric)) %>% 
-  tidyr::pivot_longer(names_to = "refpoint", values_to = "data", c("flim","fpa","fmsy","fcap","blim","bpa","msybtrigger")) %>% 
-  drop_na(data) %>% 
-  dplyr::mutate(stk    = substr(stockkeylabelold,1,3)) %>%
-  dplyr::mutate(qname  = ifelse(grepl("^f", refpoint), "fbar","ssb")) %>% 
-  dplyr::rename(year = assessmentyear) %>% 
-  dplyr::mutate(reftype = dplyr::case_when(
-    grepl("lim", refpoint)  ~ "lim",
-    grepl("pa", refpoint)   ~ "pa",
-    grepl("msy", refpoint)  ~ "msy",
-    NA                      ~ ""
-  )) %>% 
-  dplyr::select(spp, stk, year, refpoint, reftype, data, qname) 
-
 reload <- FALSE
 
 if(reload) {
   # load and run by stock
-  combY <- combI <- data.frame(stringsAsFactors = FALSE)
+  combY <- combYI <- combI <- data.frame(stringsAsFactors = FALSE)
   
   for (mystk in c("whb","her","mac")) {
   
@@ -115,7 +98,15 @@ if(reload) {
     combY <-
       bind_rows(
       combY, 
-      ldply(sims, function(x) as.data.frame(pmYear(window(x[[1]], start=2001)),drop=T)) %>% mutate(stk=mystk) 
+      ldply(sims, function(x) as.data.frame(pmYear(window(x[[1]], start=2001)),drop=T)) %>% 
+        mutate(stk=mystk) 
+    )  
+
+    combYI <-
+      bind_rows(
+      combYI, 
+      ldply(sims, function(x) as.data.frame(pmYearIters(window(x[[1]], start=2001)),drop=T)) %>% 
+        mutate(stk=mystk, iter=as.integer(iter)) 
     )  
     
     combI <-
@@ -124,8 +115,26 @@ if(reload) {
       ldply(sims, function(x) model.frame(pmIter(window(x[[1]], start=2001)))) %>% mutate(stk=mystk) 
     )  
   }
+  
+  # reference points
+  refs <-
+    read.csv(file.path(dropboxdir,"data/inputs/refs.csv"),header=T) %>% 
+    mutate(across(c("flim","fpa","fmsy","fcap","blim","bpa","msybtrigger"), as.numeric)) %>% 
+    tidyr::pivot_longer(names_to = "refpoint", values_to = "data", c("flim","fpa","fmsy","fcap","blim","bpa","msybtrigger")) %>% 
+    drop_na(data) %>% 
+    dplyr::mutate(stk    = substr(stockkeylabelold,1,3)) %>%
+    dplyr::mutate(qname  = ifelse(grepl("^f", refpoint), "fbar","ssb")) %>% 
+    dplyr::rename(year = assessmentyear) %>% 
+    dplyr::mutate(reftype = dplyr::case_when(
+      grepl("lim", refpoint)  ~ "lim",
+      grepl("pa", refpoint)   ~ "pa",
+      grepl("msy", refpoint)  ~ "msy",
+      NA                      ~ ""
+    )) %>% 
+    dplyr::select(spp, stk, year, refpoint, reftype, data, qname) 
 
-  save(combY, combI,
+
+  save(combY, combYI, combI, refs,
        file=file.path(dropboxdir,paste0("data/runs/","comb_df",".RData")))
   
 } else {
@@ -150,7 +159,6 @@ if(reload) {
 
 
 ### Blue whiting
-
 
 ```{r, runWhb1, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
@@ -178,8 +186,10 @@ df %>%
   
   # refpoints
   geom_line(data=rp, 
-            aes(x=year, y=data, group=reftype, col=reftype),
-            linewidth=1, linetype=3) +
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
   
   expand_limits(y=0) +
   facet_grid(qname ~ .id, scales="free_y")
@@ -216,8 +226,10 @@ df %>%
   
   # refpoints
   geom_line(data=rp, 
-            aes(x=year, y=data, group=reftype, col=reftype),
-            linewidth=1, linetype=3) +
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
   
   expand_limits(y=0) +
   facet_grid(qname ~ .id, scales="free_y")
@@ -255,8 +267,10 @@ df %>%
   
   # refpoints
   geom_line(data=rp, 
-            aes(x=year, y=data, group=reftype, col=reftype),
-            linewidth=1, linetype=3) +
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
   
   expand_limits(y=0) +
   facet_grid(qname ~ .id, scales="free_y")
@@ -292,25 +306,33 @@ df %>%
   
   # refpoints
   geom_line(data=rp, 
-            aes(x=year, y=data, group=reftype, col=reftype),
-            linewidth=1, linetype=3) +
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
   
   expand_limits(y=0) +
   facet_grid(qname ~ .id, scales="free_y")
 
 ```
 
-```{r, check, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+```{r, whbcheck, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
 mystk     <- "whb"
 myvar     <- c("catch")
-scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
+# scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
+scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")
 rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
 ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
 df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
   mutate(.id = factor(.id, levels=scenarios)) %>% 
   group_by(.id) %>% 
   mutate(perc_diff = (median-lag(median))/lag(median)) 
+iters        <- combYI %>% 
+  filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021, iter <= 10) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  group_by(stk, .id, iter) %>% 
+  mutate(perc_diff = (data-lag(data))/lag(data)) 
   
 df %>% 
   ggplot(aes(x=year, y=perc_diff)) +
@@ -318,10 +340,500 @@ df %>%
   theme(panel.grid.minor = element_blank(),  
         panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
 
+  geom_line(data=iters,
+            aes(y=perc_diff, group=iter),
+            linewidth=.44, colour="darkgray") +
   geom_line(linewidth=1, colour="red") +
+  
   geom_hline(yintercept = 0.25, colour="black", linewidth=1, linetype=2) +
   geom_hline(yintercept = -0.2, colour="black", linewidth=1, linetype=2) +
+  expand_limits(y=0) +
+  scale_y_continuous(labels=scales::percent, limits=c(-2,2)) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+```{r, whbcheck2, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "whb"
+myvar     <- c("ssb")
+# scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
+scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  left_join(dplyr::select(rp,
+                          stk, year, qname, refpoint, reftype, rp=data), 
+            by=c("stk", "year", "qname")) %>% 
+  mutate(trigger = ifelse(median >= rp, "above","below"))
+
+iters        <- combYI %>% 
+  filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021, iter <= 10) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  left_join(dplyr::select(rp,
+                          stk, year, qname, refpoint, reftype, rp=data), 
+            by=c("stk", "year", "qname")) %>% 
+  mutate(trigger = ifelse(data >= rp, "above","below"))
+
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(data=iters,
+            aes(y=data, group=iter),
+            linewidth=0.4, colour="darkgray") +
+  geom_point(data=filter(iters,
+                         trigger=="above"),
+            aes(y=data, group=iter),
+            size=1.0, colour="black") +
+  
+  geom_line(linewidth=1, colour="red") +
+  geom_point(data=filter(df,
+                        trigger=="above"),
+            colour="red", size=2) +
+
+    # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
   expand_limits(y=0) +
   facet_grid(qname ~ .id, scales="free_y")
 
 ```
+
+```{r, whbcheck2, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "whb"
+myvar     <- c("catch.50", "iav.50", "aav")
+scenarios <- c("ICES", "Fmsy",
+               "HCR1",  "HCR1 bnd", "HCR1 +10% bnd", "HCR1 +10% bnd recent", "HCR1 random bnd recent")
+
+df        <- combI %>% 
+  tidyr::pivot_longer(names_to = "variable", values_to = "data", myvar) %>% 
+  filter(stk == mystk,  .id %in% scenarios) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  mutate(variable = factor(variable, levels=myvar))
+
+calc_boxplot_stat <- function(x) {
+  coef <- 1.5
+  n <- sum(!is.na(x))
+  # calculate quantiles
+  stats <- quantile(x, probs = c(0.0, 0.25, 0.5, 0.75, 1.0))
+  names(stats) <- c("ymin", "lower", "middle", "upper", "ymax")
+  iqr <- diff(stats[c(2, 4)])
+  # set whiskers
+  outliers <- x < (stats[2] - coef * iqr) | x > (stats[4] + coef * iqr)
+  if (any(outliers)) {
+    stats[c(1, 5)] <- range(c(stats[2:4], x[!outliers]), na.rm = TRUE)
+  }
+  return(stats)
+}
+
+df %>% 
+  ggplot(aes(x=.id, y=data)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  stat_summary(fun.data = calc_boxplot_stat, geom="boxplot") +
+  expand_limits(y=0) +
+  # scale_y_continuous(limits = quantile(t$data, c(0.1, 0.9))) +
+  facet_grid(variable~., scales="free", space="free_x")
+
+```
+
+\newpage
+
+### North Sea herring
+
+```{r, runher1, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "her"
+myvar     <- c("catch","cCum", "ssb","fbar", "aav", "aav2")
+scenarios <- c("ICES", "Fmsy", "HCR1")
+rp        <- refs  %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+
+
+```
+
+\newpage
+
+```{r, runher2, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "her"
+myvar     <- c("catch","cCum", "ssb","fbar")
+scenarios <- c("ICES","HCR1",  "HCR1 bnd", "HCR2 bnd")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+
+
+```
+
+\newpage
+
+
+```{r, runher3, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "her"
+myvar     <- c("catch","cCum", "ssb","fbar")
+scenarios <- c("HCR1", "HCR1 +10%", "HCR1 +20%", "HCR1 +30%")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+\newpage
+
+
+```{r, runher4, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "her"
+myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+scenarios <- c("HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap", "HCR1 +random bnd", "HCR1 +random bnd recent")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+```{r, hercheck, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "her"
+myvar     <- c("catch")
+scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  group_by(stk, .id) %>% 
+  mutate(perc_diff = (median-lag(median))/lag(median)) 
+iters        <- combYI %>% 
+  filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021, iter <= 10) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  group_by(stk, .id, iter) %>% 
+  mutate(perc_diff = (data-lag(data))/lag(data)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=perc_diff)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(data=iters,
+            aes(y=perc_diff, group=iter),
+            linewidth=.44, colour="darkgray") +
+  geom_line(linewidth=1, colour="red") +
+  geom_hline(yintercept = 0.25, colour="black", linewidth=1, linetype=2) +
+  geom_hline(yintercept = -0.2, colour="black", linewidth=1, linetype=2) +
+  expand_limits(y=0) +
+  scale_y_continuous(labels=scales::percent, limits=c(-2,2)) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+\newpage
+
+### Northeast Atlantic mackerel
+
+```{r, runmac1, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "mac"
+myvar     <- c("catch","cCum", "ssb","fbar", "aav", "aav2")
+scenarios <- c("ICES", "Fmsy", "HCR1")
+rp        <- refs  %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+
+
+```
+
+\newpage
+
+```{r, runmac2, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "mac"
+myvar     <- c("catch","cCum", "ssb","fbar")
+scenarios <- c("ICES","HCR1",  "HCR1 bnd", "HCR2 bnd")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+
+
+```
+
+\newpage
+
+
+```{r, runmac3, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "mac"
+myvar     <- c("catch","cCum", "ssb","fbar")
+scenarios <- c("HCR1", "HCR1 +10%", "HCR1 +20%", "HCR1 +30%")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+\newpage
+
+
+```{r, runmac4, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "mac"
+myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+scenarios <- c("HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap", "HCR1 +random bnd", "HCR1 +random bnd recent")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(aes(y=median), 
+            linewidth=1, colour="red") +
+  geom_ribbon(aes(xmin=year, xmax=year, ymin=lowq, ymax=uppq), 
+              alpha=0.2, fill="red") +
+  # ICES
+  geom_line(data= ices, aes(year,median), 
+            col="blue", linewidth=1, linetype=2, inherit.aes=FALSE) +
+  
+  # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+
+
+```{r, maccheck, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+
+mystk     <- "mac"
+myvar     <- c("catch")
+scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  group_by(stk, .id) %>% 
+  mutate(perc_diff = (median-lag(median))/lag(median)) 
+iters        <- combYI %>% 
+  filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021, iter <= 10) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  group_by(stk, .id, iter) %>% 
+  mutate(perc_diff = (data-lag(data))/lag(data)) 
+  
+df %>% 
+  ggplot(aes(x=year, y=perc_diff)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+
+  geom_line(data=iters,
+            aes(y=perc_diff, group=iter),
+            linewidth=.44, colour="darkgray") +
+  geom_line(linewidth=1, colour="red") +
+  geom_hline(yintercept = 0.25, colour="black", linewidth=1, linetype=2) +
+  geom_hline(yintercept = -0.2, colour="black", linewidth=1, linetype=2) +
+  expand_limits(y=0) +
+  scale_y_continuous(labels=scales::percent, limits=c(-2,2)) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+```
+

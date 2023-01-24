@@ -11,6 +11,13 @@ pmYear<-function(x){
              data.frame(year=names(y)[-length(y)],
                         data=(y[-1]-y[-length(y)])/y[-1])))))}
 
+pmYearIters<-function(x){
+  FLQuants(catch=FLQuant(catch(x)),
+           ssb  =FLQuant(ssb(  x)),
+           rec  =FLQuant(rec(  x)),
+           fbar =FLQuant(fbar(  x)),
+           cCum =FLQuant(apply(catch(x),c(6), cumsum)))}
+
 pmIter<-function(x){
   # Median total catch over whole time period, by iter
   p1=FLPar(catch.50=aaply(catch(x),6,median))
