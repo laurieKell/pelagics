@@ -49,18 +49,18 @@ implErr[["10%"]]=propagate(FLQuant(0.10,dimnames=list(year=(start-1):end)),nits)
 implErr[["20%"]]=propagate(FLQuant(0.20,dimnames=list(year=(start-1):end)),nits)
 implErr[["30%"]]=propagate(FLQuant(0.30,dimnames=list(year=(start-1):end)),nits)
 
-implErr[["10% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.10,10)),dimnames=list(year=(start-1):end)),nits)
-implErr[["20% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.20,10)),dimnames=list(year=(start-1):end)),nits)
-implErr[["30% final"]]=propagate(FLQuant(c(rep(0,12),rep(0.30,10)),dimnames=list(year=(start-1):end)),nits)
+implErr[["10% recent"]]=propagate(FLQuant(c(rep(0,12),rep(0.10,10)),dimnames=list(year=(start-1):end)),nits)
+implErr[["20% recent"]]=propagate(FLQuant(c(rep(0,12),rep(0.20,10)),dimnames=list(year=(start-1):end)),nits)
+implErr[["30% recent"]]=propagate(FLQuant(c(rep(0,12),rep(0.30,10)),dimnames=list(year=(start-1):end)),nits)
 
-implErr[["random final"]]=implErr[[4]]
-implErr[["random final"]][,ac(2012:2021)][] = sample(c(0.10,0.20,0.30),nits*10,T)
-# implErr[["random final"]][,ac(2012:2021)][] = sample(runif(nits, 0.1, 0.3),nits*10,T)
+implErr[["random recent"]]=implErr[[1]]%=%0
+implErr[["random recent"]][,ac(2012:2021)][] = sample(runif(nits, 0.1, 0.3),nits*10,T)
 
-if (!FALSE){
+if (FALSE){
 #Scenario
 sims=list("ICES"=list(ices,NULL))
 sims[["Fmsy"]]=list(fmsy,NULL)
+
 
 ## HCRs ########################################################################
 sims[["HCR1"]]     =hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
@@ -152,7 +152,85 @@ sims[["HCR2 +30% bnd cap"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,la
                                     implErr=implErr[["30%"]],
                                     bndWhen ="blim",
                                     bndCap=0.4)
+
+################################################################################
+sims[["HCR1 +10% recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["10% recent"]])
+sims[["HCR1 +20% recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["20% recent"]])
+sims[["HCR1 +30% recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["30% recent"]])
+sims[["HCR1 +10% bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["10% recent"]])
+sims[["HCR1 +20% bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["20% recent"]])
+sims[["HCR1 +30% bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            implErr=implErr[["30% recent"]])
+
+sims[["HCR1 +random"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["random"]])
+sims[["HCR1 +random recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0,Inf),
+                            implErr=implErr[["random recent"]])
+
+sims[["HCR2 +10% recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["10% recent"]])
+sims[["HCR2 +20% recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["20% recent"]])
+sims[["HCR2 +30% recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["30% recent"]])
+sims[["HCR2 +10% bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["10% recent"]])
+sims[["HCR2 +20% bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["20% recent"]])
+sims[["HCR2 +30% bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["30% recent"]])
+
+sims[["HCR2 +random"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0,Inf),
+                            bndWhen ="blim",
+                            implErr=implErr[["random"]])
+sims[["HCR2 +random recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0,Inf),
+                            bndWhen ="blim",
+                            implErr=implErr[["random recent"]])
+sims[["HCR2 +random bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["random"]])
+sims[["HCR2 +random bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                            bndTac=c(0.8,1.25),
+                            bndWhen ="blim",
+                            implErr=implErr[["random recent"]])
+
+sims[["HCR1 +random bnd"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                                   bndTac=c(0.8,1.25),
+                                   implErr=implErr[["random"]])
+sims[["HCR1 +random bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,interval,lag=lag,err=err,
+                                          bndTac=c(0.8,1.25),
+                                          implErr=implErr[["random recent"]])
 }
+
+
 #plot(FLStocks(llply(sims,function(x) x[[1]])))
 
 save(sims,refs,file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
