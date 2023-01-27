@@ -682,3 +682,54 @@ df %>%
 
 **Figure `r mystk`.7**  `r mystkname`. Comparison of all scenario's on median catch, median IAV (Interannual variability in catch) and AAV (Average Annual Variability in catch)
 
+```{r smry2, eval=FALSE, fig.align="center", fig.asp=1.2, message=FALSE, warning=FALSE, cache=FALSE, include=FALSE, whbsmry, echo=FALSE}
+
+mystk     <- c("whb","her","mac")
+myvar     <- c("catch.50", "iav.50", "aav")
+scenarios <- c("ICES","Fmsy","HCR1","HCR1 bnd","HCR1 bnd cap", "HCR1 +10% bnd","HCR1 +10% bnd cap",
+               "HCR1 +10% bnd recent","HCR1 +random bnd",",HCR1 +random bnd recent","HCR1 +10%",
+               "HCR1 +10% recent","HCR1 +random","HCR1 +random recent","HCR1 +20% bnd", 
+               "HCR1 +20% bnd cap","HCR1 +20% bnd recent","HCR1 +20%","HCR1 +20% recent",
+               "HCR1 +30% bnd","HCR1 +30% bnd cap","HCR1 +30% bnd recent","HCR1 +30%",
+               "HCR1 +30% recent",
+               "HCR2","HCR2 bnd","HCR2 bnd cap","HCR2 +10% bnd","HCR2 +10% bnd cap",
+               "HCR2 +10% bnd recent","HCR2 +random bnd","HCR2 +random bnd recent","HCR2 +10%",
+               "HCR2 +10% recent","HCR2 +random","HCR2 +random recent","HCR2 +20% bnd",
+               "HCR2 +20% bnd cap","HCR2 +20% bnd recent","HCR2 +20%","HCR2 +20% recent",
+               "HCR2 +30% bnd","HCR2 +30% bnd cap","HCR2 +30% bnd recent","HCR2 +30%",
+               "HCR2 +30% recent")
+
+df        <- combI %>% 
+  tidyr::pivot_longer(names_to = "variable", values_to = "data", myvar) %>% 
+  filter(stk %in% mystk,  .id %in% scenarios) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  mutate(variable = factor(variable, levels=myvar)) %>% 
+  mutate(stk = factor(stk, levels=mystk))
+
+
+calc_boxplot_stat <- function(x) {
+  coef <- 1.5
+  n <- sum(!is.na(x))
+  # calculate quantiles
+  stats <- quantile(x, probs = c(0.0, 0.25, 0.5, 0.75, 1.0))
+  names(stats) <- c("ymin", "lower", "middle", "upper", "ymax")
+  iqr <- diff(stats[c(2, 4)])
+  # set whiskers
+  outliers <- x < (stats[2] - coef * iqr) | x > (stats[4] + coef * iqr)
+  if (any(outliers)) {
+    stats[c(1, 5)] <- range(c(stats[2:4], x[!outliers]), na.rm = TRUE)
+  }
+  return(stats)
+}
+
+df %>% 
+  ggplot(aes(x=.id, y=data)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  stat_summary(fun.data = calc_boxplot_stat, geom="boxplot") +
+  expand_limits(y=0) +
+  # scale_y_continuous(limits = quantile(t$data, c(0.1, 0.9))) +
+  labs(x="", y="") +
+  facet_grid(variable~stk, scales="free", space="free_x")
+
+```
