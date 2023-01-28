@@ -143,24 +143,23 @@ if(reload) {
   
 }
 
+# mystk     <- "whb"; mystkname <- "Blue whiting"
+# mystk     <- "her"; mystkname <- "North Sea herring"
+mystk     <- "mac"; mystkname <- "Northeast Atlantic mackerel"
+
 ```
 
 # Hindcast analysis of pelagic stocks
-
-## Blue whiting, North Sea herring and Northeast Atlantic mackerel
 
 **L. Kell, M.A. Pastoors
 
 `r format(Sys.time(), '%d/%m/%Y')`
 
-
-
 ## Simulation results
 
+### `r mystkname`
 
-### Blue whiting
-
-#### Blue whiting: comparing different HCR’s without TAC bounds
+#### `r mystkname`: comparing different HCR’s without TAC bounds
 
 ICES
 Fmsy
@@ -168,8 +167,7 @@ HCR1 (no bounds)
 
 ```{r, runWhb1, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
-mystk     <- "whb"
-myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+myvar     <- c("catch","cCum", "ssb","fbar", "rec")
 scenarios <- c("ICES", "Fmsy", "HCR1")
 rp        <- refs  %>% 
   filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger")) %>% 
@@ -236,9 +234,11 @@ df %>%
 
 ```
 
+**Figure `r mystk`.2**  `r mystkname`. Comparison of different HCR’s without TAC bounds
+
 \newpage
 
-#### Blue whiting: comparing different HCR’s with and without TAC bounds
+#### `r mystkname`: comparing different HCR’s with and without TAC bounds
 
 Fmsy
 HCR0 (no bounds)
@@ -247,8 +247,7 @@ HCR2 bnd (-25%/+20% TAC change bounds apply when stock is above Blim)
 
 ```{r, runWhb2, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
-mystk     <- "whb"
-myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+myvar     <- c("catch","cCum", "ssb","fbar")
 scenarios <- c("Fmsy", "HCR1",  "HCR1 bnd", "HCR2 bnd")
 rp        <- refs %>% 
   filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger")) %>% 
@@ -305,9 +304,11 @@ df %>%
 
 ```
 
+**Figure `r mystk`.3**  `r mystkname`. Comparison of different HCR’s with and without TAC bounds
+
 \newpage
 
-#### Blue whiting: comparing HCR’s with and without a cap on TAC bounds
+#### `r mystkname`: comparing HCR’s with and without a cap on TAC bounds
 
 HCR1 bnd
 HCR1 bnd cap
@@ -316,8 +317,8 @@ HCR2 bnd cap
 
 ```{r, runWhb3, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
-mystk     <- "whb"
-myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+
+myvar     <- c("catch","cCum", "ssb","fbar")
 scenarios <- c("HCR1 bnd", "HCR1 bnd cap", "HCR2 bnd", "HCR2 bnd cap")
 rp        <- refs %>% 
   filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger")) %>% 
@@ -371,9 +372,11 @@ df %>%
 
 ```
 
+**Figure `r mystk`.4**  `r mystkname`. Comparison of different HCR’s with and without a cap on TAC bounds
+
 \newpage
 
-#### Blue whiting: comparing HCR’s with and without implementation error (without bounds on TAC change)
+#### `r mystkname`: comparing HCR’s with and without implementation error (without bounds on TAC change)
 
 HCR0
 HCR1 10%
@@ -385,8 +388,8 @@ HCR1 10% random recent
 
 ```{r, runWhb4, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
-mystk     <- "whb"
-myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+
+myvar     <- c("catch","cCum", "ssb","fbar")
 scenarios <- c("HCR1", "HCR1 +10%", "HCR1 +20%", "HCR1 +30%", "HCR1 +10% recent", 
                "HCR1 +random recent")
 rp        <- refs %>% 
@@ -442,7 +445,11 @@ df %>%
 
 ```
 
-#### Blue whiting: comparing HCR’s with and without implementation error in combination with bounds on TAC change
+**Figure `r mystk`.5**  `r mystkname`. Comparison of different HCR’s with and without implementation error (without bounds on TAC change)
+
+\newpage
+
+#### `r mystkname`: comparing HCR’s with and without implementation error in combination with bounds on TAC change
 
 HCR1 bnd
 HCR1 10% bnd
@@ -452,8 +459,8 @@ HCR1 10% random recent bnd
 
 ```{r, runWhb5, echo=FALSE, fig.asp=1.15, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
-mystk     <- "whb"
-myvar     <- c("catch","cCum", "ssb","fbar", "aav")
+
+myvar     <- c("catch","cCum", "ssb","fbar")
 scenarios <- c("HCR1 bnd", 
                "HCR1 +10% bnd",
                "HCR1 +10% bnd recent",
@@ -512,16 +519,66 @@ df %>%
 
 ```
 
+**Figure `r mystk`.6**  `r mystkname`. Comparison of different HCR’s with and without implementation error in combination with bounds on TAC change
+
 \newpage
 
-#### Blue whiting: comparing all scenario's on median catch, IAV and AAV
+#### `r mystkname`: checking the working of different constraints
 
-```{r, whbcheck, echo=FALSE, fig.asp=.4, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
+```{r, whbcheck, echo=FALSE, fig.asp=.5, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
-mystk     <- "whb"
+
+myvar     <- c("ssb")
+# scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
+scenarios <- c("HCR1", "HCR1 bnd", "HCR2", "HCR2 bnd")
+#scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")
+rp        <- refs %>% filter(stk == mystk, refpoint %in% c("msybtrigger", "blim"))
+ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
+df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  left_join(dplyr::select(rp,
+                          stk, year, qname, refpoint, reftype, rp=data), 
+            by=c("stk", "year", "qname")) %>% 
+  mutate(trigger = ifelse(median >= rp, "above","below"))
+iters        <- combYI %>% 
+  filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021, iter <= 10) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  left_join(dplyr::select(rp,
+                          stk, year, qname, refpoint, reftype, rp=data), 
+            by=c("stk", "year", "qname")) %>% 
+  mutate(trigger = ifelse(data >= rp, "above","below"))
+df %>% 
+  ggplot(aes(x=year, y=median)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),  
+        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
+  geom_line(data=iters,
+            aes(y=data, group=iter),
+            linewidth=0.4, colour="darkgray") +
+  geom_point(data=filter(iters,
+                         trigger=="above"),
+            aes(y=data, group=iter),
+            size=1.0, colour="black") +
+  
+  geom_line(linewidth=1, colour="red") +
+  geom_point(data=filter(df,
+                        trigger=="above"),
+            colour="red", size=2) +
+    # refpoints
+  geom_line(data=rp, 
+            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
+            linewidth=1) +
+  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
+  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
+  labs(y="ssb (tonnes)") +
+  expand_limits(y=0) +
+  facet_grid(qname ~ .id, scales="free_y")
+
+
+
 myvar     <- c("catch")
 # scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
-scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")
+# scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")
 rp        <- refs %>% 
   filter(stk == mystk, refpoint %in% c("fmsy", "blim", "msybtrigger")) %>% 
   mutate(qname = factor(qname, levels=myvar))
@@ -562,60 +619,20 @@ df %>%
 
 
 
-mystk     <- "whb"
-myvar     <- c("ssb")
-# scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10%", "HCR1 +10% bnd", "HCR1 +10% bnd cap")
-scenarios <- c("ICES", "HCR1 bnd", "HCR1 +10% bnd", "HCR1 +20% bnd", "HCR1 +30% bnd")
-rp        <- refs %>% filter(stk == mystk, refpoint %in% c("msybtrigger"))
-ices      <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% "ICES",  year %in% 2000:2021) %>% dplyr::select(- .id)
-df        <- combY %>% filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021) %>% 
-  mutate(.id = factor(.id, levels=scenarios)) %>% 
-  left_join(dplyr::select(rp,
-                          stk, year, qname, refpoint, reftype, rp=data), 
-            by=c("stk", "year", "qname")) %>% 
-  mutate(trigger = ifelse(median >= rp, "above","below"))
-iters        <- combYI %>% 
-  filter(stk == mystk, qname %in% c(myvar),  .id %in% scenarios, year %in% 2000:2021, iter <= 10) %>% 
-  mutate(.id = factor(.id, levels=scenarios)) %>% 
-  left_join(dplyr::select(rp,
-                          stk, year, qname, refpoint, reftype, rp=data), 
-            by=c("stk", "year", "qname")) %>% 
-  mutate(trigger = ifelse(data >= rp, "above","below"))
-df %>% 
-  ggplot(aes(x=year, y=median)) +
-  theme_bw() +
-  theme(panel.grid.minor = element_blank(),  
-        panel.border     = element_rect(linetype = 1, colour="black", fill=NA))+
-  geom_line(data=iters,
-            aes(y=data, group=iter),
-            linewidth=0.4, colour="darkgray") +
-  geom_point(data=filter(iters,
-                         trigger=="above"),
-            aes(y=data, group=iter),
-            size=1.0, colour="black") +
-  
-  geom_line(linewidth=1, colour="red") +
-  geom_point(data=filter(df,
-                        trigger=="above"),
-            colour="red", size=2) +
-    # refpoints
-  geom_line(data=rp, 
-            aes(x=year, y=data, group=reftype, col=reftype, linetype=reftype),
-            linewidth=1) +
-  scale_linetype_manual(values = c("longdash","dashed"), breaks = c("lim", "msy") ) +
-  scale_colour_manual  (values = c("black","darkgray"), breaks = c("lim", "msy") ) +
-  
-  expand_limits(y=0) +
-  facet_grid(qname ~ .id, scales="free_y")
 
 
 ```
 
+**Figure `r mystk`.6**  `r mystkname`. Comparison of the working of constraints on TAC change relative to stock size and reference point MSY Btrigger. Black dots indicate estimated stock size on individual runs above MSY Btrigger (i.e. TAC contstraint applies). Red dots indicate median stock size above MSY Btrigger. 
+
+\newpage
+
+#### `r mystkname`: comparing all scenario's on median catch, IAV and AAV
 
 ```{r, whbsmry, echo=FALSE, fig.asp=1.2, fig.align="center", message=FALSE, warning=FALSE, cache=FALSE}
 
 
-mystk     <- "whb"
+
 myvar     <- c("catch.50", "iav.50", "aav")
 scenarios <- c("ICES","Fmsy","HCR1","HCR1 bnd","HCR1 bnd cap", "HCR1 +10% bnd","HCR1 +10% bnd cap",
                "HCR1 +10% bnd recent","HCR1 +random bnd",",HCR1 +random bnd recent","HCR1 +10%",
@@ -663,11 +680,56 @@ df %>%
 
 ```
 
-\newpage
+**Figure `r mystk`.7**  `r mystkname`. Comparison of all scenario's on median catch, median IAV (Interannual variability in catch) and AAV (Average Annual Variability in catch)
 
-### North Sea herring
+```{r smry2, eval=FALSE, fig.align="center", fig.asp=1.2, message=FALSE, warning=FALSE, cache=FALSE, include=FALSE, whbsmry, echo=FALSE}
 
-\newpage
+mystk     <- c("whb","her","mac")
+myvar     <- c("catch.50", "iav.50", "aav")
+scenarios <- c("ICES","Fmsy","HCR1","HCR1 bnd","HCR1 bnd cap", "HCR1 +10% bnd","HCR1 +10% bnd cap",
+               "HCR1 +10% bnd recent","HCR1 +random bnd",",HCR1 +random bnd recent","HCR1 +10%",
+               "HCR1 +10% recent","HCR1 +random","HCR1 +random recent","HCR1 +20% bnd", 
+               "HCR1 +20% bnd cap","HCR1 +20% bnd recent","HCR1 +20%","HCR1 +20% recent",
+               "HCR1 +30% bnd","HCR1 +30% bnd cap","HCR1 +30% bnd recent","HCR1 +30%",
+               "HCR1 +30% recent",
+               "HCR2","HCR2 bnd","HCR2 bnd cap","HCR2 +10% bnd","HCR2 +10% bnd cap",
+               "HCR2 +10% bnd recent","HCR2 +random bnd","HCR2 +random bnd recent","HCR2 +10%",
+               "HCR2 +10% recent","HCR2 +random","HCR2 +random recent","HCR2 +20% bnd",
+               "HCR2 +20% bnd cap","HCR2 +20% bnd recent","HCR2 +20%","HCR2 +20% recent",
+               "HCR2 +30% bnd","HCR2 +30% bnd cap","HCR2 +30% bnd recent","HCR2 +30%",
+               "HCR2 +30% recent")
 
-### Northeast Atlantic mackerel
+df        <- combI %>% 
+  tidyr::pivot_longer(names_to = "variable", values_to = "data", myvar) %>% 
+  filter(stk %in% mystk,  .id %in% scenarios) %>% 
+  mutate(.id = factor(.id, levels=scenarios)) %>% 
+  mutate(variable = factor(variable, levels=myvar)) %>% 
+  mutate(stk = factor(stk, levels=mystk))
 
+
+calc_boxplot_stat <- function(x) {
+  coef <- 1.5
+  n <- sum(!is.na(x))
+  # calculate quantiles
+  stats <- quantile(x, probs = c(0.0, 0.25, 0.5, 0.75, 1.0))
+  names(stats) <- c("ymin", "lower", "middle", "upper", "ymax")
+  iqr <- diff(stats[c(2, 4)])
+  # set whiskers
+  outliers <- x < (stats[2] - coef * iqr) | x > (stats[4] + coef * iqr)
+  if (any(outliers)) {
+    stats[c(1, 5)] <- range(c(stats[2:4], x[!outliers]), na.rm = TRUE)
+  }
+  return(stats)
+}
+
+df %>% 
+  ggplot(aes(x=.id, y=data)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  stat_summary(fun.data = calc_boxplot_stat, geom="boxplot") +
+  expand_limits(y=0) +
+  # scale_y_continuous(limits = quantile(t$data, c(0.1, 0.9))) +
+  labs(x="", y="") +
+  facet_grid(variable~stk, scales="free", space="free_x")
+
+```
