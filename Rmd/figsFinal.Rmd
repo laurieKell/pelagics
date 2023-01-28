@@ -5,7 +5,7 @@
 # date: "`r format(Sys.time(), '%d %B, %Y')`"
 # output: html_document
 output:
-  html_document:
+  word_document:
     reference_docx: ../report_template.dotx
 mathjax: TRUE
 # fig_width: 6 
@@ -152,6 +152,10 @@ load(file.path(dropboxdir, "data/om/whbErr.RData"))
 load(file.path(dropboxdir, "data/om/herErr.RData"))
 load(file.path(dropboxdir, "data/om/macErr.RData"))
 
+load(file.path(dropboxdir,"data/om/whbVPA.RData"))
+load(file.path(dropboxdir,"data/om/herVPA.RData"))
+load(file.path(dropboxdir,"data/om/macVPA.RData"))
+
 refs=read.csv(file.path(dropboxdir,"data/inputs/refs.csv"),header=T)
 refs=melt(refs,measure=c("flim","fpa","fmsy","fcap","blim","bpa","msybtrigger"),id=c("spp","assessmentyear"))
 refs=transmute(refs,spp=spp,year=an(assessmentyear),ref=variable,data=an(value))
@@ -279,10 +283,6 @@ ggarrange(
 **Figure `r iFig=iFig+1;iFig`** ICES SSB and Fishing Mortality reference points, as estimated at each benchmark assessment.
 
 ```{r, vpa}
-load(file.path(dropboxdir,"data/om/whbVPA.RData"))
-load(file.path(dropboxdir,"data/om/herVPA.RData"))
-load(file.path(dropboxdir,"data/om/macVPA.RData"))
-
 ggarrange(
   whbVPA+theme_bw()+
   theme(panel.grid.major =element_blank(),
@@ -314,7 +314,7 @@ ggarrange(
 
 **Figure `r iFig=iFig+1;iFig`** VPAs. 
 
-```{r}
+```{r, fmsy}
 load(file.path(dropboxdir,"data/om/proj.RData"))
 
 ggarrange(
@@ -340,7 +340,7 @@ ggarrange(
   expand_limits(y=0),
   
   nrow = 1,ncol=3,
-  common.legend=TRUE, legend="none",
+  common.legend=TRUE, legend="bottom",
   labels = c("WHB","HER","MAC"), 
   label.x = rep(0.06,3),
   label.y = rep(0.99,3)) 
@@ -513,63 +513,67 @@ p<-function(what,stks=list(whb=whb,her=her,mac=mac)){
 ```{r, hcr, fig.asp=0.75}
 p(c("ICES","HCR1","HCR2"))
 ```
-**Figure `r iFig=10; iFig`** Blue whiting, Herring and Mackerel: HCRs
+**Figure A.`r iFig=1; iFig`** Blue whiting, Herring and Mackerel: HCRs
 
 ```{r, hcr-bnd, fig.asp=0.75}
 p(c("ICES","HCR1 bnd","HCR2 bnd"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRs with bounds
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRs with bounds
 
 
 ```{r,  hcr-bn-cap, fig.asp=0.75}
 p(what=c("ICES", "HCR1 bnd cap","HCR2 bnd cap"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and cap
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and cap
 
 
 ```{r, impErr, fig.asp=0.75}
 p(what=c("ICES","HCR1","HCR1 +10%","HCR1 +20%","HCR1 +30%"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
 
 
 ```{r, impErr-recent, fig.asp=0.75}
 p(what=c("ICES","HCR1","HCR1 +10% recent","HCR1 +20% recent","HCR1 +30% recent"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
 
 ```{r, impErr-bnd, fig.asp=0.75}
 p(what=c("ICES","HCR1","HCR1 +10% bnd","HCR1 +20% bnd","HCR1 +30% bnd"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
 
 ```{r, impErr-bnd-recent, fig.asp=0.75}
 p(what=c("ICES","HCR1","HCR1 +10% bnd recent","HCR1 +20% bnd recent","HCR1 +30% bnd recent"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error
 
 ```{r, impErr-bnd-recent2, fig.asp=0.75}
 p(what=c("ICES","HCR1","HCR1 +10% bnd recent","HCR1 +20% bnd recent","HCR1 +30% bnd recent"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error in last 10 years
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error in last 10 years
 
 
 ```{r, impErr-30, fig.asp=0.75}
 p(what=c("ICES","HCR2","HCR2 +30% bnd","HCR2 +30% bnd recent")[-4])
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error in last 10 years
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error in last 10 years
 
 
 ```{r, impErr-30-2, fig.asp=0.75}
 p(what=c("ICES","HCR2","HCR2 +30% bnd","HCR2 +30% bnd recent")[-4])
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error in last 10 years
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and implementation error in last 10 years
 
 
 ```{r, chk, fig.asp=0.75}
 p(what=c("HCR1 bnd","HCR1 +10% bnd","HCR1 +10% bnd recent"))
 ```
-**Figure `r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and 30% implementation error in last 10 years
+**Figure A.`r iFig=iFig+1;iFig`** Blue whiting, Herring and Mackerel: HCRS with Bounds and 30% implementation error in last 10 years
+
+```{r, eval=FALSE}
+ names(sims)[seq(46)[!seq(46)%in%grep("bnd",names(sims))]][-(1:2)]
+```
 
 
 # Funding

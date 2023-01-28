@@ -42,6 +42,9 @@ par=as(model.frame(mcf(FLQuants(ftar=ftar,
 par["btrig"][is.na(par["btrig"])]=min(par["btrig"],na.rm=T)
 par["blim"][ is.na(par["blim"])] =min(par["blim"],na.rm=T)
 
+if (refCurrent)
+  par[]=par[,21]
+
 err     =rlnorm(nits,FLQuant(0,dimnames=list(year=start:end)),var(err[-1,1])^0.5)
 
 implErr=FLQuants(NULL)
@@ -56,7 +59,7 @@ implErr[["30% recent"]]=propagate(FLQuant(c(rep(0,12),rep(0.30,10)),dimnames=lis
 implErr[["random recent"]]=implErr[[1]]%=%0
 implErr[["random recent"]][,ac(2012:2021)][] = sample(runif(nits, 0.1, 0.3),nits*10,T)
 
-if (FALSE){
+if (!FALSE){
 #Scenario
 sims=list("ICES"=list(ices,NULL))
 sims[["Fmsy"]]=list(fmsy,NULL)
@@ -233,4 +236,8 @@ sims[["HCR1 +random bnd recent"]]=hcrICES(fmsy,eql,rec(fmsy),par,start,end,inter
 
 #plot(FLStocks(llply(sims,function(x) x[[1]])))
 
-save(sims,refs,file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))
+if (!refCurrent){
+   save(sims,refs,file=paste(file.path(dropboxdir,paste("data/runs/",stk,".RData",sep=""))))  
+}else{
+   save(sims,refs,file=paste(file.path(dropboxdir,paste("data/runs/",stk,".Current.RData",sep=""))))}
+

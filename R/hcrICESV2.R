@@ -107,13 +107,13 @@ setMethod('hcrICES', signature(object="FLStock",eql='FLBRP'),
               rtn=qmax(rtn,catch(object)[,ac(refYrs)]*bndTac[1])
               rtn=qmin(rtn,catch(object)[,ac(refYrs)]*bndTac[2])
               
-              ## Implementation Error
-              if ("FLQuant"%in%is(implErr))
-                rtn=rtn%*%(1+implErr[,dimnames(rtn)$year]+1)
-              
               ##If less than bndWhen then no TAC constraints
               if (any(flag))
                 rtn[,,,,,flag]=res[[1]][,,,,,flag]
+              
+              ## Implementation Error
+              if ("FLQuant"%in%is(implErr))
+                rtn=rtn%*%(1+implErr[,dimnames(rtn)$year])
               
               object=fwd(object,catch=rtn,sr=eql,residuals=sr_deviances)
               
